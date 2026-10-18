@@ -1,9 +1,7 @@
 import { test, expect } from "@playwright/test"
 
-// UI-smoke parity: framework-agnostic assertions that must hold for every
-// target (each framework template in the monorepo, or the single `app/` after
-// init). These guard the shared-util/component/style refactor against dropped
-// features and broken imports — no chain or wallet interaction required.
+// Smoke tests for the Cripto Cantina guestbook UI. No chain or wallet
+// interaction required (the list may be empty or unreachable offline).
 
 test("home page mounts", async ({ page }) => {
 	const response = await page.goto("/")
@@ -13,18 +11,39 @@ test("home page mounts", async ({ page }) => {
 
 test("wallet connect button is present", async ({ page }) => {
 	await page.goto("/")
-	await expect(page.getByRole("button", { name: /connect/i })).toBeVisible()
-})
-
-test("contract explorer link is present", async ({ page }) => {
-	await page.goto("/")
-	await expect(page.locator('a[href="/debug"]').first()).toBeVisible()
-})
-
-test("guess-the-number sample contract form is present", async ({ page }) => {
-	await page.goto("/")
 	await expect(
-		page.getByPlaceholder("Guess a number from 1 to 10!"),
+		page
+			.getByRole("button", { name: /conectar wallet|connect wallet/i })
+			.first(),
 	).toBeVisible()
-	await expect(page.getByRole("button", { name: "Submit" })).toBeVisible()
+})
+
+test("guestbook form and contract id are present", async ({ page }) => {
+	await page.goto("/")
+	await expect(page.locator("textarea#mensaje")).toBeAttached()
+	await expect(
+		page
+			.getByText("CCPGEQF44OMJGJWF7RV7PZA2XKUD2GCVH75A62FYHCBEKHL46UZQ5E3V")
+			.first(),
+	).toBeAttached()
+})
+
+test("language switch toggles to English and is remembered", async ({
+	page,
+}) => {
+	await page.goto("/")
+	await page.getByRole("switch").click()
+	await expect(page.locator("html")).toHaveAttribute("lang", "en")
+	await page.reload()
+	await expect(page.locator("html")).toHaveAttribute("lang", "en")
+	await expect(
+		page.getByRole("button", { name: /connect wallet/i }).first(),
+	).toBeVisible()
+})
+
+test("help panel opens with the FAQ", async ({ page }) => {
+	await page.goto("/")
+	await page.locator(".help-btn").click()
+	await expect(page.getByRole("dialog")).toBeVisible()
+	await expect(page.locator(".faq__q").first()).toBeVisible()
 })
