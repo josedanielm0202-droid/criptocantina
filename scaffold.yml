@@ -94,3 +94,12 @@ contracts:
           name: ExampleNFT
           symbol: ENFT
           owner: ${account.me}
+
+  guestbook:
+    networks:
+      local:
+        type: workspace
+        source: guestbook
+      testnet:
+        type: contract
+        source: CCPGEQF44OMJGJWF7RV7PZA2XKUD2GCVH75A62FYHCBEKHL46UZQ5E3V
