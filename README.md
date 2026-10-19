@@ -10,7 +10,7 @@ Entrega del **Stellar Challenge #1: «El libro de visitas de la Cripto Cantina»
 | --- | --- | --- |
 | ![Intro con la mascota](docs/screenshot-hero.png) | ![Formulario de firma con la mascota guía](docs/screenshot-firmar.png) | ![Panel de ayuda «?»](docs/screenshot-faq.png) |
 
-**Demo en vivo:** (próximamente)
+**Demo en vivo:** https://josedanielm0202-droid.github.io/criptocantina/
 
 ## Contrato en Testnet
 
