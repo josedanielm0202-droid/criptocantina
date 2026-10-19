@@ -274,6 +274,7 @@ const Home = () => {
 					<h2>
 						{t("list.title")} <em className="serif">{t("list.titleItalic")}</em>
 					</h2>
+					<p className="book__sub mono">{t("list.subtitle")}</p>
 				</header>
 				<SignatureList query={firmas} />
 			</section>
