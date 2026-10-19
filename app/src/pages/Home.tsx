@@ -7,9 +7,7 @@ import {
 	useState,
 } from "react"
 import { Coin3D } from "../components/cantina/Coin3D"
-import { Dive } from "../components/cantina/Dive"
 import { useGuide } from "../components/cantina/Guide"
-import { INTRO_PLAY } from "../components/cantina/Hero"
 import { Mascot } from "../components/cantina/Mascot"
 import { SignatureList } from "../components/cantina/SignatureList"
 import { SignForm } from "../components/cantina/SignForm"
@@ -254,54 +252,13 @@ function Footer() {
 const STAGES = 6
 
 /**
- * Las secciones de abajo del intro se montan por partes, después de que el
- * intro automático termina (o apenas el usuario hace scroll / toca algo).
- * Así la carga inicial no compite con la animación del intro y cada parte se
- * renderiza en una transición que no bloquea los frames.
+ * Las secciones se montan por partes, una por momento libre del navegador,
+ * en transiciones que no bloquean los frames (el intro sigue fluido).
  */
 function useStagedMount() {
-	const [n, setN] = useState(() =>
-		prefersReducedMotion() || location.hash ? STAGES : 0,
-	)
-	const [go, setGo] = useState(false)
-
+	const [n, setN] = useState(() => (prefersReducedMotion() ? STAGES : 0))
 	useEffect(() => {
 		if (n >= STAGES) return
-		let fired = false
-		const start = () => {
-			if (fired) return
-			fired = true
-			setGo(true)
-		}
-		const all = () => setN(STAGES) // un clic (p. ej. en un enlace #firmar): ya
-		let afterIntro: ReturnType<typeof setTimeout> | undefined
-		const onPlay = () => {
-			clearTimeout(afterIntro)
-			afterIntro = setTimeout(start, 2600)
-		}
-		window.addEventListener(INTRO_PLAY, onPlay)
-		const safety = setTimeout(start, 6000)
-		const opts = { passive: true, once: true } as const
-		window.addEventListener("wheel", start, opts)
-		window.addEventListener("touchstart", start, opts)
-		window.addEventListener("keydown", start, opts)
-		window.addEventListener("scroll", start, opts)
-		window.addEventListener("pointerdown", all, opts)
-		return () => {
-			window.removeEventListener(INTRO_PLAY, onPlay)
-			clearTimeout(afterIntro)
-			clearTimeout(safety)
-			window.removeEventListener("wheel", start)
-			window.removeEventListener("touchstart", start)
-			window.removeEventListener("keydown", start)
-			window.removeEventListener("scroll", start)
-			window.removeEventListener("pointerdown", all)
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [])
-
-	useEffect(() => {
-		if (!go || n >= STAGES) return
 		const next = () =>
 			startTransition(() => setN((c) => Math.min(STAGES, c + 1)))
 		const ric = window.requestIdleCallback
@@ -311,8 +268,7 @@ function useStagedMount() {
 		}
 		const id = setTimeout(next, 16)
 		return () => clearTimeout(id)
-	}, [go, n])
-
+	}, [n])
 	return n
 }
 
@@ -331,7 +287,6 @@ const Home = () => {
 
 	return (
 		<>
-			<Dive />
 			{shown >= 1 && (
 				<>
 					<Marquee count={firmas.data?.length} />

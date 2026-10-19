@@ -27,16 +27,86 @@ const TILES: { c: number; r: number; e: Expression; light?: boolean }[] = [
 	{ c: 1, r: 1, e: "neutral" },
 ]
 
+/** Geometría que depende del tamaño de la ventana. */
+interface Geo {
+	vw: number
+	vh: number
+	s0: number
+	/** radio local máximo de las esquinas de la pantalla (px, al inicio) */
+	r0: number
+}
+
+const geoFor = (vw: number, vh: number): Geo => {
+	const s0 = vw < 700 ? 0.5 : 0.34
+	return { vw, vh, s0, r0: 16 / (s0 * 0.92) }
+}
+
+/**
+ * Todos los valores del intro para un progreso `p` (0..1) de la zambullida.
+ * Es la misma coreografía de siempre; se usa para generar los fotogramas de
+ * las animaciones ligadas al scroll (y para el respaldo con rAF).
+ */
+function diveAt(p: number, g: Geo) {
+	const a = easeOutCubic(clamp01(p / 0.32)) // salida de título/personaje
+	const z = easeInOutCubic(clamp01((p - 0.1) / 0.82)) // zoom de cámara
+	const k = (0.92 + 0.08 * a) * Math.pow(1 / g.s0, z)
+	const scr = g.s0 * k // escala total de la pantalla (≤ 1: nunca se agranda de más)
+	const radius = (16 * (1 - z)) / scr // radio en px locales de la pantalla
+	const split = a * g.vw * 0.6
+	const tOp = 1 - clamp01((a - 0.25) / 0.6)
+	// El personaje ya es invisible desde a = 0.62: no hace falta seguir
+	// agrandándolo (así la GPU no tiene que guardarlo enorme).
+	const am = Math.min(a, 0.62)
+	return {
+		world: `scale(${k.toFixed(5)})`,
+		screen: `scale(${scr.toFixed(5)})`,
+		cap: `scale(${clamp01(radius / g.r0).toFixed(5)})`,
+		chrome: 1 - clamp01((z - 0.7) / 0.22),
+		tiles: (0.35 + 0.65 * a) * (1 - clamp01((z - 0.55) / 0.35)),
+		hero: 0.55 + 0.45 * clamp01(a * 1.4),
+		titleL: `translate3d(${(-split).toFixed(1)}px,0,0)`,
+		titleR: `translate3d(${split.toFixed(1)}px,0,0)`,
+		titleOp: tOp,
+		tag: clamp01(1 - a * 4),
+		mascot: `translate3d(0,${(am * 0.16 * g.vh).toFixed(2)}px,0) scale(${(1 + am * am * 3.4).toFixed(4)})`,
+		mascotOp: clamp01((0.62 - a) * 3.2),
+		bubble: clamp01(1 - a * 8),
+		cue: 1 - clamp01((p - 0.02) / 0.08),
+	}
+}
+type DiveFrame = ReturnType<typeof diveAt>
+
+/** Animaciones ligadas al scroll que corren en la GPU (Chrome/Edge 115+). */
+const ViewTimelineCtor = (
+	globalThis as unknown as {
+		ViewTimeline?: new (o: {
+			subject: Element
+			axis?: string
+			inset?: string
+		}) => AnimationTimeline
+	}
+).ViewTimeline
+
+const SAMPLES = 96
+
 /**
  * Intro estilo neutomni: el personaje y el título aparecen grandes; al bajar,
  * la cámara se zambulle en la pantalla central de una cuadrícula y la página
- * empieza adentro. Todo con transform/opacity en un solo rAF.
+ * empieza adentro.
+ *
+ * - La parte automática son animaciones CSS (solo transform/opacity).
+ * - La zambullida son animaciones ligadas al scroll (ViewTimeline): el
+ *   navegador las mueve en la GPU sin JS por frame. Donde no existen, un
+ *   respaldo con rAF escribe los mismos valores.
+ * - Las esquinas redondeadas de la pantalla son 4 "tapas" que solo se escalan
+ *   (antes cambiar el border-radius repintaba toda la pantalla).
  */
 export function Dive() {
 	const { t, lang } = useLang()
 	const sec = useRef<HTMLElement>(null)
 	const world = useRef<HTMLDivElement>(null)
 	const screen = useRef<HTMLDivElement>(null)
+	const caps = useRef<HTMLDivElement>(null)
 	const chrome = useRef<HTMLDivElement>(null)
 	const tiles = useRef<HTMLDivElement>(null)
 	const titleL = useRef<HTMLSpanElement>(null)
@@ -70,7 +140,7 @@ export function Dive() {
 		root.classList.add("in-intro")
 		// Intro automático al cargar: cuando las fuentes estén listas y el
 		// navegador ya pintó un par de frames (así no arranca en medio del
-		// trabajo pesado de la carga y no da tirones al inicio).
+		// trabajo de la carga y no da tirones al inicio).
 		let played = false
 		let r1 = 0
 		let r2 = 0
@@ -87,12 +157,117 @@ export function Dive() {
 		void document.fonts?.ready.then(play)
 		const safety = setTimeout(play, 700)
 
+		/** Elemento → cómo sacar su transform/opacity de un fotograma. */
+		const capEls = () =>
+			Array.from(caps.current?.children ?? []) as HTMLElement[]
+		const targets: [() => HTMLElement[], (f: DiveFrame) => Keyframe][] = [
+			[
+				() => (world.current ? [world.current] : []),
+				(f) => ({ transform: f.world }),
+			],
+			[
+				() => (screen.current ? [screen.current] : []),
+				(f) => ({ transform: f.screen }),
+			],
+			[
+				() => (caps.current ? [caps.current] : []),
+				(f) => ({ transform: f.screen }),
+			],
+			[capEls, (f) => ({ transform: f.cap })],
+			[
+				() => (chrome.current ? [chrome.current] : []),
+				(f) => ({ opacity: f.chrome }),
+			],
+			[
+				() => (tiles.current ? [tiles.current] : []),
+				(f) => ({ opacity: f.tiles }),
+			],
+			[
+				() => (hero.current ? [hero.current] : []),
+				(f) => ({ opacity: f.hero }),
+			],
+			[
+				() => (titleL.current ? [titleL.current] : []),
+				(f) => ({ transform: f.titleL, opacity: f.titleOp }),
+			],
+			[
+				() => (titleR.current ? [titleR.current] : []),
+				(f) => ({ transform: f.titleR, opacity: f.titleOp }),
+			],
+			[() => (tag.current ? [tag.current] : []), (f) => ({ opacity: f.tag })],
+			[
+				() => (fgMascot.current ? [fgMascot.current] : []),
+				(f) => ({ transform: f.mascot, opacity: f.mascotOp }),
+			],
+			[
+				() => (bubble.current ? [bubble.current] : []),
+				(f) => ({ opacity: f.bubble }),
+			],
+			[() => (cue.current ? [cue.current] : []), (f) => ({ opacity: f.cue })],
+		]
+
+		let geo = geoFor(window.innerWidth, window.innerHeight)
+		const applyGeo = () => {
+			const gap = geo.vw < 700 ? geo.vw * 0.045 : geo.vw * 0.022
+			world.current?.style.setProperty("--s0", String(geo.s0))
+			world.current?.style.setProperty("--gap", `${gap}px`)
+			caps.current?.style.setProperty("--r0", `${geo.r0.toFixed(2)}px`)
+		}
+
+		let anims: Animation[] = []
+		const timeline = ViewTimelineCtor
+			? // inset 0: ignora el scroll-padding-top del html (72px)
+				new ViewTimelineCtor({ subject: s, axis: "block", inset: "0px" })
+			: null
+		const build = () => {
+			anims.forEach((an) => an.cancel())
+			anims = []
+			if (!timeline) return
+			const frames = Array.from({ length: SAMPLES + 1 }, (_, i) =>
+				diveAt(i / SAMPLES, geo),
+			)
+			for (const [els, pick] of targets) {
+				const kf = frames.map((f, i) => ({ ...pick(f), offset: i / SAMPLES }))
+				for (const el of els()) {
+					try {
+						anims.push(
+							el.animate(kf, {
+								timeline,
+								fill: "both",
+								easing: "linear",
+								rangeStart: "contain 0%",
+								rangeEnd: "contain 100%",
+							} as KeyframeAnimationOptions),
+						)
+					} catch {
+						// sin soporte de rangos: el respaldo con rAF se encarga
+						anims.forEach((an) => an.cancel())
+						anims = []
+						return
+					}
+				}
+			}
+		}
+		applyGeo()
+		build()
+		const scrollDriven = () => anims.length > 0
+
+		// Respaldo (sin ViewTimeline): los mismos valores escritos con rAF
+		const writeFrame = (f: DiveFrame) => {
+			for (const [els, pick] of targets) {
+				const v = pick(f)
+				for (const el of els()) {
+					if (v.transform !== undefined)
+						el.style.transform = String(v.transform)
+					if (v.opacity !== undefined) el.style.opacity = String(v.opacity)
+				}
+			}
+		}
+
 		let pS = -1
 		let lastKey = ""
-		let s0 = 0.34
-		let vwPrev = 0
-		let lastRadius = ""
 		let lastFgHidden: boolean | null = null
+		let lastFull: boolean | null = null
 
 		// Top/alto de la sección cacheados: el bucle no lee el layout en cada frame
 		const { box, untrack } = trackBox(s)
@@ -100,79 +275,44 @@ export function Dive() {
 		const off = onFrame((y, vh) => {
 			if (box.height <= 0) return
 			const vw = window.innerWidth
-			if (vw !== vwPrev) {
-				vwPrev = vw
-				s0 = vw < 700 ? 0.5 : 0.34
-				const gap = vw < 700 ? vw * 0.045 : vw * 0.022
-				world.current?.style.setProperty("--s0", String(s0))
-				world.current?.style.setProperty("--gap", `${gap}px`)
+			if (vw !== geo.vw || vh !== geo.vh) {
+				geo = geoFor(vw, vh)
+				applyGeo()
+				build()
+				lastKey = ""
 			}
 			const total = box.height - vh
 			const raw = clamp01(total > 0 ? -(box.top - y) / total : 1)
-			// Lenis ya suaviza la rueda; en touch (scroll nativo) suavizamos aquí
-			pS = pS < 0 ? raw : getLenis() ? raw : lerp(pS, raw, 0.25)
-			if (Math.abs(pS - raw) < 0.0005) pS = raw
-			const p = pS
+			let p = raw
+			if (!scrollDriven()) {
+				// Lenis ya suaviza la rueda; en touch (scroll nativo) suavizamos aquí
+				pS = pS < 0 ? raw : getLenis() ? raw : lerp(pS, raw, 0.25)
+				if (Math.abs(pS - raw) < 0.0005) pS = raw
+				p = pS
+			}
 
 			const key = `${p.toFixed(4)}|${vw}|${vh}`
 			if (key === lastKey) return
 			lastKey = key
 
-			const a = easeOutCubic(clamp01(p / 0.32)) // salida de título/personaje
-			const z = easeInOutCubic(clamp01((p - 0.1) / 0.82)) // zoom de cámara
-			const k = (0.92 + 0.08 * a) * Math.pow(1 / s0, z)
+			if (!scrollDriven()) writeFrame(diveAt(p, geo))
+
+			// Solo cambios de estado (clases/visibilidad) al cruzar umbrales
+			const a = easeOutCubic(clamp01(p / 0.32))
+			const z = easeInOutCubic(clamp01((p - 0.1) / 0.82))
 			const full = z >= 0.999
-
-			if (world.current)
-				world.current.style.transform = full ? "none" : `scale(${k.toFixed(5)})`
-			if (screen.current) {
-				screen.current.style.transform = full ? "none" : `scale(${s0})`
-				// Redondeo en px enteros: cambiar el radio obliga a volver a pintar
-				// toda la pantalla, así que solo se escribe cuando cambia de verdad
-				// (≈ 1 de cada varios frames en vez de todos). Diferencia < 1 px.
-				const radius = full ? "0" : `${Math.round((16 * (1 - z)) / (s0 * k))}px`
-				if (radius !== lastRadius) {
-					lastRadius = radius
-					screen.current.style.borderRadius = radius
-				}
+			if (full !== lastFull) {
+				lastFull = full
+				if (tiles.current)
+					tiles.current.style.visibility = full ? "hidden" : "visible"
+				if (caps.current)
+					caps.current.style.visibility = full ? "hidden" : "visible"
 			}
-			if (chrome.current)
-				chrome.current.style.opacity = String(1 - clamp01((z - 0.7) / 0.22))
-			if (tiles.current) {
-				tiles.current.style.opacity = String(
-					(0.35 + 0.65 * a) * (1 - clamp01((z - 0.55) / 0.35)),
-				)
-				tiles.current.style.visibility = full ? "hidden" : "visible"
-			}
-			if (hero.current)
-				hero.current.style.opacity = String(0.55 + 0.45 * clamp01(a * 1.4))
-
-			const split = a * vw * 0.6
-			const tOp = String(1 - clamp01((a - 0.25) / 0.6))
-			if (titleL.current) {
-				titleL.current.style.transform = `translate3d(${(-split).toFixed(1)}px,0,0)`
-				titleL.current.style.opacity = tOp
-			}
-			if (titleR.current) {
-				titleR.current.style.transform = `translate3d(${split.toFixed(1)}px,0,0)`
-				titleR.current.style.opacity = tOp
-			}
-			// Primer plano: se escriben transform/opacity directo en cada capa (antes
-			// una variable CSS en el contenedor recalculaba todo su contenido).
-			if (tag.current) tag.current.style.opacity = String(clamp01(1 - a * 4))
-			if (fgMascot.current) {
-				fgMascot.current.style.transform = `translate3d(0,${(a * 0.16 * vh).toFixed(2)}px,0) scale(${(1 + a * a * 3.4).toFixed(4)})`
-				fgMascot.current.style.opacity = String(clamp01((0.62 - a) * 3.2))
-			}
-			if (bubble.current)
-				bubble.current.style.opacity = String(clamp01(1 - a * 8))
 			const fgHidden = a >= 0.999
 			if (fg.current && fgHidden !== lastFgHidden) {
 				lastFgHidden = fgHidden
 				fg.current.style.visibility = fgHidden ? "hidden" : "visible"
 			}
-			if (cue.current)
-				cue.current.style.opacity = String(1 - clamp01((p - 0.02) / 0.08))
 			s.classList.toggle("dive--inside", p > 0.985)
 
 			if (p > 0.985) done()
@@ -182,6 +322,7 @@ export function Dive() {
 		return () => {
 			off()
 			untrack()
+			anims.forEach((an) => an.cancel())
 			clearTimeout(safety)
 			cancelAnimationFrame(r1)
 			cancelAnimationFrame(r2)
@@ -224,20 +365,26 @@ export function Dive() {
 							</div>
 						))}
 					</div>
-					<div className="dive__screen" ref={screen}>
-						<div className="dive__chrome mono" ref={chrome} aria-hidden>
-							<span className="dots">
-								<i />
-								<i />
-								<i />
-							</span>
-							<span>cripto-cantina.app</span>
-							<span>TESTNET</span>
-						</div>
-						<div className="dive__hero" ref={hero}>
-							<Hero />
-						</div>
+				</div>
+				<div className="dive__screen" ref={screen}>
+					<div className="dive__chrome mono" ref={chrome} aria-hidden>
+						<span className="dots">
+							<i />
+							<i />
+							<i />
+						</span>
+						<span>cripto-cantina.app</span>
+						<span>TESTNET</span>
 					</div>
+					<div className="dive__hero" ref={hero}>
+						<Hero />
+					</div>
+				</div>
+				<div className="dive__caps" ref={caps} aria-hidden>
+					<span className="dive__cap dive__cap--tl" />
+					<span className="dive__cap dive__cap--tr" />
+					<span className="dive__cap dive__cap--bl" />
+					<span className="dive__cap dive__cap--br" />
 				</div>
 
 				<div className="dive__fg" ref={fg} aria-hidden>

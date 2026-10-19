@@ -368,9 +368,28 @@ export interface MascotProps {
 	title?: string
 }
 
+/** Centro de los ojos (unidades del viewBox 200×220) por expresión: el
+ * parpadeo/giro de los ojos rota y escala alrededor de este punto. */
+const EYE_CENTER: Record<Expression, [number, number]> = {
+	neutral: [100, 102],
+	triste: [100, 106.5],
+	enojado: [100, 103],
+	emocionado: [100, 100.45],
+	sorprendido: [100, 100],
+	divertido: [101, 102],
+	determinado: [100, 108],
+	nervioso: [100.25, 104.8],
+}
+
+const VB = "0 0 200 220"
+
 /**
- * El personaje guía de la Cripto Cantina, dibujado en SVG para que se anime
+ * El personaje guía de la Cripto Cantina, dibujado en SVG para que se vea
  * nítido a cualquier tamaño.
+ *
+ * Va en capas (sombra · cuerpo · ojos · detalles) para que cada parte que se
+ * anima sea su propia caja HTML: así flotar, parpadear, girar los ojos, etc.
+ * corren en la GPU (compositor) y no obligan a repintar el SVG en cada frame.
  */
 export const Mascot = memo(function Mascot({
 	expression = "neutral",
@@ -386,6 +405,7 @@ export const Mascot = memo(function Mascot({
 		watchVisibility(el)
 		return () => unwatchVisibility(el)
 	}, [])
+	const [ex, ey] = EYE_CENTER[expression]
 	return (
 		<span
 			ref={ref}
@@ -399,35 +419,37 @@ export const Mascot = memo(function Mascot({
 			aria-label={title}
 			aria-hidden={title ? undefined : true}
 		>
-			<svg viewBox="0 0 200 220" width="100%" height="100%">
-				<defs>
-					<radialGradient id="mascot-shine" cx="0.38" cy="0.28" r="0.75">
-						<stop offset="0" stopColor="#FFFFFF" stopOpacity="0.1" />
-						<stop offset="0.55" stopColor="#FFFFFF" stopOpacity="0" />
-					</radialGradient>
-				</defs>
-				<ellipse
-					className="mascot__shadow"
-					cx="100"
-					cy="214"
-					rx="62"
-					ry="5"
-					fill="#000"
-					opacity="0.35"
-				/>
-				<g className="mascot__body" key={expression}>
-					<Arms e={expression} />
-					<path d={BODY} fill={BLUE} />
-					<path d={BODY} fill="url(#mascot-shine)" />
+			<span className="mascot__bob">
+				<svg className="mascot__shadow" viewBox={VB}>
+					<ellipse cx="100" cy="214" rx="62" ry="5" fill="#000" />
+				</svg>
+				<span className="mascot__body" key={expression}>
+					<svg viewBox={VB}>
+						<defs>
+							<radialGradient id="mascot-shine" cx="0.38" cy="0.28" r="0.75">
+								<stop offset="0" stopColor="#FFFFFF" stopOpacity="0.1" />
+								<stop offset="0.55" stopColor="#FFFFFF" stopOpacity="0" />
+							</radialGradient>
+						</defs>
+						<Arms e={expression} />
+						<path d={BODY} fill={BLUE} />
+						<path d={BODY} fill="url(#mascot-shine)" />
+					</svg>
 					{/* La mirada sigue al mouse vía las variables CSS --lx / --ly */}
-					<g className="mascot__look">
-						<g className="mascot__eyes">
+					<span className="mascot__look">
+						<svg
+							className="mascot__eyes"
+							viewBox={VB}
+							style={{ transformOrigin: `${ex / 2}% ${ey / 2.2}%` }}
+						>
 							<Eyes e={expression} />
-						</g>
-					</g>
-					<Front e={expression} />
-				</g>
-			</svg>
+						</svg>
+					</span>
+					<svg viewBox={VB}>
+						<Front e={expression} />
+					</svg>
+				</span>
+			</span>
 		</span>
 	)
 })

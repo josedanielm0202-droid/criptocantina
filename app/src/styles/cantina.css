@@ -480,34 +480,53 @@ textarea:focus-visible {
 	animation-play-state: paused !important;
 }
 
+/* Capas del personaje: todas ocupan la caja completa */
+.mascot__bob,
+.mascot__body,
+.mascot__look,
+.mascot__bob > svg,
+.mascot__body > svg,
+.mascot__look > svg {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.mascot {
+	position: relative;
+	/* sin alto explícito, el alto sale del ancho (como el SVG de antes) */
+	aspect-ratio: 200 / 220;
+}
+
 .mascot svg {
 	overflow: visible;
+	display: block;
 }
 
+.mascot__shadow {
+	opacity: 0.35;
+	/* centro de la elipse (100, 214) del viewBox 200×220 */
+	transform-origin: 50% 97.27%;
+}
+
+/* 7 y 5 unidades del viewBox, en % de la caja */
 .mascot__look {
-	transform: translate(calc(var(--lx, 0) * 7px), calc(var(--ly, 0) * 5px));
+	transform: translate(calc(var(--lx, 0) * 3.5%), calc(var(--ly, 0) * 2.273%));
 }
 
-.mascot--idle svg {
+.mascot--idle .mascot__bob {
 	animation: bob 3.6s var(--ease-io) infinite;
 	transform-origin: 50% 100%;
 }
 
 .mascot--idle .mascot__shadow {
 	animation: shadow 3.6s var(--ease-io) infinite;
-	transform-origin: 50% 50%;
-	transform-box: fill-box;
 }
 
 .mascot__body {
 	animation: pop 0.6s var(--spring);
 	transform-origin: 50% 90%;
-	transform-box: view-box;
-}
-
-.mascot__eyes {
-	transform-box: fill-box;
-	transform-origin: 50% 50%;
 }
 
 .mascot--idle.mascot--neutral .mascot__eyes,
@@ -525,11 +544,11 @@ textarea:focus-visible {
 	animation: spin-eyes 3s linear infinite;
 }
 
-.mascot--emocionado.mascot--idle svg {
+.mascot--emocionado.mascot--idle .mascot__bob {
 	animation: jump 0.9s var(--ease-io) infinite;
 }
 
-.mascot--nervioso.mascot--idle svg {
+.mascot--nervioso.mascot--idle .mascot__bob {
 	animation: shake 0.5s var(--ease-io) infinite;
 }
 
@@ -699,12 +718,63 @@ textarea:focus-visible {
 	position: absolute;
 	inset: 0;
 	transform-origin: 50% 50%;
-	transform: scale(0.34);
-	border-radius: 47px;
+	/* 0.34 × 0.92: la pantalla ya no está dentro de la cuadrícula que se agranda */
+	transform: scale(0.3128);
 	overflow: hidden;
 	background: var(--bg);
 	box-shadow: 0 0 0 3px var(--line-2);
 	will-change: transform;
+}
+
+/* Esquinas redondeadas de la pantalla: 4 tapas del color del fondo (con el
+   borde) que solo se escalan con transform; la pantalla nunca se repinta. */
+.dive__caps {
+	--r0: 51px;
+	--ring: #303334; /* --line-2 sobre --bg */
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	pointer-events: none;
+	transform-origin: 50% 50%;
+	transform: scale(0.3128);
+	will-change: transform;
+}
+
+.dive__cap {
+	position: absolute;
+	width: calc(var(--r0) + 3px);
+	height: calc(var(--r0) + 3px);
+	will-change: transform;
+	--g: transparent calc(var(--r0) - 0.75px), var(--ring) var(--r0),
+		var(--ring) calc(var(--r0) + 2.25px), var(--bg) calc(var(--r0) + 3px);
+}
+
+.dive__cap--tl {
+	left: -3px;
+	top: -3px;
+	transform-origin: 3px 3px;
+	background: radial-gradient(circle at 100% 100%, var(--g));
+}
+
+.dive__cap--tr {
+	right: -3px;
+	top: -3px;
+	transform-origin: calc(100% - 3px) 3px;
+	background: radial-gradient(circle at 0 100%, var(--g));
+}
+
+.dive__cap--bl {
+	left: -3px;
+	bottom: -3px;
+	transform-origin: 3px calc(100% - 3px);
+	background: radial-gradient(circle at 100% 0, var(--g));
+}
+
+.dive__cap--br {
+	right: -3px;
+	bottom: -3px;
+	transform-origin: calc(100% - 3px) calc(100% - 3px);
+	background: radial-gradient(circle at 0 0, var(--g));
 }
 
 .dive__chrome {
@@ -990,6 +1060,7 @@ textarea:focus-visible {
 }
 
 .dive--static .dive__tiles,
+.dive--static .dive__caps,
 .dive--static .dive__fg,
 .dive--static .dive__ui,
 .dive--static .dive__skip,
