@@ -89,10 +89,13 @@ const Arms = ({ e }: { e: Expression }) => {
 			)
 		case "divertido":
 			return (
-				<g fill={BLUE}>
-					<rect x="150" y="112" width="40" height="28" rx="13" />
-					<rect x="168" y="90" width="14" height="32" rx="7" />
-				</g>
+				<path
+					d="M150 142 C160 140 168 136 172 130"
+					stroke={BLUE}
+					strokeWidth="20"
+					strokeLinecap="round"
+					fill="none"
+				/>
 			)
 		default:
 			return null
@@ -106,34 +109,34 @@ const Front = ({ e }: { e: Expression }) => {
 			return (
 				<>
 					<path
-						d="M44 128 C52 160 70 182 92 192"
+						d="M40 118 C46 152 62 176 88 190"
 						stroke={DARK}
-						strokeWidth="3.5"
+						strokeWidth="3"
 						fill="none"
 						strokeLinecap="round"
 					/>
 					<path
-						d="M156 128 C148 160 130 182 108 192"
+						d="M160 118 C154 152 138 176 112 190"
 						stroke={DARK}
-						strokeWidth="3.5"
+						strokeWidth="3"
 						fill="none"
 						strokeLinecap="round"
 					/>
 					<ellipse
-						cx="40"
-						cy="196"
-						rx="17"
-						ry="12"
+						cx="36"
+						cy="194"
+						rx="19"
+						ry="14"
 						fill={DARK}
-						transform="rotate(-25 40 196)"
+						transform="rotate(-35 36 194)"
 					/>
 					<ellipse
-						cx="160"
-						cy="196"
-						rx="17"
-						ry="12"
+						cx="164"
+						cy="194"
+						rx="19"
+						ry="14"
 						fill={DARK}
-						transform="rotate(25 160 196)"
+						transform="rotate(35 164 194)"
 					/>
 				</>
 			)
@@ -162,29 +165,51 @@ const Front = ({ e }: { e: Expression }) => {
 		case "sorprendido":
 			return (
 				<>
+					{/* manitas en las mejillas */}
 					<path
-						d="M38 150 C52 154 66 148 76 134"
+						d="M36 158 C50 166 66 160 76 144"
 						stroke={DARK}
-						strokeWidth="3.5"
+						strokeWidth="3"
 						fill="none"
 						strokeLinecap="round"
 					/>
 					<path
-						d="M162 150 C148 154 134 148 124 134"
+						d="M164 158 C150 166 134 160 124 144"
 						stroke={DARK}
-						strokeWidth="3.5"
+						strokeWidth="3"
 						fill="none"
 						strokeLinecap="round"
 					/>
 					<ellipse
-						cx="164"
-						cy="194"
-						rx="18"
-						ry="13"
+						cx="166"
+						cy="192"
+						rx="20"
+						ry="14"
 						fill={DARK}
-						transform="rotate(-30 164 194)"
+						transform="rotate(-35 166 192)"
 					/>
 				</>
+			)
+		case "divertido":
+			return (
+				<g>
+					{/* pulgar arriba: puño cerrado con dedos doblados visibles */}
+					<g stroke={DARK} strokeWidth="2.4" strokeLinejoin="round" fill={BLUE}>
+						<rect
+							x="159"
+							y="80"
+							width="17"
+							height="36"
+							rx="8.5"
+							transform="rotate(-18 167 114)"
+						/>
+						<rect x="156" y="108" width="26" height="46" rx="10" />
+						<rect x="170" y="109" width="27" height="12" rx="6" />
+						<rect x="170" y="120" width="27" height="12" rx="6" />
+						<rect x="170" y="131" width="26" height="12" rx="6" />
+						<rect x="170" y="142" width="23" height="12" rx="6" />
+					</g>
+				</g>
 			)
 		case "determinado":
 			return (
@@ -230,22 +255,9 @@ const Eyes = ({ e }: { e: Expression }) => {
 		case "triste":
 			return (
 				<g fill={EYE}>
-					<path d="M68 104 Q78 92 92 90 L92 112 A12 12 0 0 1 68 112 Z" />
-					<path d="M132 104 Q122 92 108 90 L108 112 A12 12 0 0 0 132 112 Z" />
-					<path
-						d="M64 92 Q74 80 88 78"
-						stroke={DARK}
-						strokeWidth="3"
-						fill="none"
-						strokeLinecap="round"
-					/>
-					<path
-						d="M136 92 Q126 80 112 78"
-						stroke={DARK}
-						strokeWidth="3"
-						fill="none"
-						strokeLinecap="round"
-					/>
+					{/* ojos caídos: borde superior inclinado hacia afuera */}
+					<path d="M66 100 Q76 86 92 84 L92 116 A13 13 0 0 1 66 116 Z" />
+					<path d="M134 100 Q124 86 108 84 L108 116 A13 13 0 0 0 134 116 Z" />
 				</g>
 			)
 		case "enojado":
@@ -281,8 +293,8 @@ const Eyes = ({ e }: { e: Expression }) => {
 		case "sorprendido":
 			return (
 				<g fill={EYE}>
-					<ellipse cx="80" cy="100" rx="15" ry="19" />
-					<ellipse cx="120" cy="100" rx="15" ry="19" />
+					<ellipse cx="76" cy="100" rx="18" ry="22" />
+					<ellipse cx="124" cy="100" rx="18" ry="22" />
 				</g>
 			)
 		case "divertido":
