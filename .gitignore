@@ -45,3 +45,6 @@ app-lib/clients/*
 
 # TypeScript incremental build info
 *.tsbuildinfo
+
+# Stellar CLI local identities/config (never commit keys)
+.stellar
