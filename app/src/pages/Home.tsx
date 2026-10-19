@@ -1,11 +1,11 @@
 import { labPrefix } from "@stellar-scaffold/app-lib"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Coin3D } from "../components/cantina/Coin3D"
+import { Dive } from "../components/cantina/Dive"
 import { useGuide } from "../components/cantina/Guide"
-import { type Expression, Mascot } from "../components/cantina/Mascot"
+import { Mascot } from "../components/cantina/Mascot"
 import { SignatureList } from "../components/cantina/SignatureList"
 import { SignForm } from "../components/cantina/SignForm"
-import { Starfield } from "../components/cantina/Starfield"
 import { useFirmadoLive, useFirmas } from "../hooks/useFirmas"
 import { useInView } from "../hooks/useInView"
 import { useLang } from "../hooks/useLang"
@@ -41,123 +41,42 @@ function ScrollWords({
 	)
 }
 
-const WORD = "CRIPTO CANTINA"
-
-function Hero({ count }: { count: number | undefined }) {
-	const { t, lang } = useLang()
-	const { sayOnce, mood } = useGuide()
-	const [look, setLook] = useState({ x: 0, y: 0 })
-	const [heroMood, setHeroMood] = useState<Expression>("neutral")
-	const word = lang === "es" ? WORD : "CRYPTO CANTINA"
-
-	useEffect(() => {
-		const a = setTimeout(
-			() => sayOnce("hello", "guide.hello", "emocionado", 3400),
-			900,
-		)
-		const b = setTimeout(
-			() => sayOnce("scroll", "guide.scroll", "divertido", 3200),
-			5000,
-		)
-		return () => {
-			clearTimeout(a)
-			clearTimeout(b)
-		}
-	}, [sayOnce])
-
-	useEffect(() => {
-		const onMove = (e: PointerEvent) =>
-			setLook({
-				x: (e.clientX / window.innerWidth - 0.6) * 2,
-				y: (e.clientY / window.innerHeight - 0.45) * 2,
-			})
-		window.addEventListener("pointermove", onMove, { passive: true })
-		return () => window.removeEventListener("pointermove", onMove)
-	}, [])
-
+/** Cinta corrida estilo "DESIGN • WEBFLOW • STRATEGY" de neutomni. */
+function Marquee({ count }: { count: number | undefined }) {
+	const { t } = useLang()
+	const items = [
+		count === undefined
+			? "— " + t("hero.stats.firmas")
+			: count === 1
+				? t("list.count1")
+				: t("list.count", { n: count }),
+		"firmar()",
+		`${MAX_BYTES} ${t("hero.stats.max")}`,
+		"require_auth()",
+		`1 ${t("hero.stats.once")}`,
+		"listar()",
+		"Stellar Testnet",
+		"#firmado",
+	]
+	const row = (
+		<span className="marquee__row">
+			{items.map((it) => (
+				<span key={it} className="marquee__item">
+					{it}
+					<span className="marquee__dot" aria-hidden>
+						●
+					</span>
+				</span>
+			))}
+		</span>
+	)
 	return (
-		<section className="hero" id="inicio" data-p>
-			<Starfield />
-			<div className="hero__aurora" aria-hidden />
-			<div className="hero__top mono" data-reveal>
-				<span>{t("hero.tag")}</span>
-				<span className="hide-sm">CC/26 — 01</span>
-				<span>{t("hero.scroll")} ↓</span>
+		<div className="marquee mono" aria-label={items.join(" · ")}>
+			<div className="marquee__track" aria-hidden>
+				{row}
+				{row}
 			</div>
-
-			<h1 className="wordmark" aria-label={word}>
-				{word.split("").map((ch, i) => (
-					<span
-						key={`${lang}-${i}`}
-						className="wordmark__ch"
-						style={{ ["--i" as string]: i }}
-					>
-						{ch === " " ? "\u00a0" : ch}
-					</span>
-				))}
-			</h1>
-
-			<div className="hero__grid">
-				<div className="hero__copy" data-reveal>
-					<p className="hero__lines">
-						<span>{t("hero.line1")}</span>{" "}
-						<em className="serif">{t("hero.line2")}</em>{" "}
-						<span>{t("hero.line3")}</span>
-					</p>
-					<p className="hero__sub">{t("hero.sub")}</p>
-					<a href="#firmar" className="btn btn--primary btn--lg">
-						{t("hero.cta")} <span aria-hidden>→</span>
-					</a>
-				</div>
-
-				<div className="portal" aria-hidden>
-					<div className="portal__ring portal__ring--1" />
-					<div className="portal__ring portal__ring--2" />
-					<div className="portal__ring portal__ring--3" />
-					<div className="portal__glow" />
-					<button
-						type="button"
-						className="portal__mascot"
-						tabIndex={-1}
-						onPointerEnter={() => setHeroMood("sorprendido")}
-						onPointerLeave={() => setHeroMood("neutral")}
-						onClick={() => {
-							setHeroMood("emocionado")
-							mood("emocionado", 2000)
-						}}
-					>
-						<Mascot size="100%" expression={heroMood} look={look} />
-					</button>
-					<span className="portal__orbit">
-						<span className="portal__chip mono">require_auth()</span>
-					</span>
-					<span className="portal__orbit portal__orbit--b">
-						<span className="portal__chip mono">listar()</span>
-					</span>
-				</div>
-			</div>
-
-			<div className="cutline mono" aria-hidden>
-				<span>✂</span>
-				<span className="cutline__dash" />
-				<span>{t("hero.cut")}</span>
-			</div>
-
-			<dl className="hero__stats" data-reveal>
-				<div>
-					<dt>{count ?? "—"}</dt>
-					<dd>{t("hero.stats.firmas")}</dd>
-				</div>
-				<div>
-					<dt>{MAX_BYTES}</dt>
-					<dd>{t("hero.stats.max")}</dd>
-				</div>
-				<div>
-					<dt>1</dt>
-					<dd>{t("hero.stats.once")}</dd>
-				</div>
-			</dl>
-		</section>
+		</div>
 	)
 }
 
@@ -170,7 +89,7 @@ function Intro() {
 		if (inView) sayOnce("intro", "guide.intro", "sorprendido")
 	}, [inView, sayOnce])
 	return (
-		<section className="intro" data-p="sticky" ref={ref}>
+		<section className="intro grid-bg" data-p="sticky" ref={ref}>
 			<div className="intro__sticky">
 				<span className="kicker mono">{t("intro.kicker")}</span>
 				<p className="intro__text">
@@ -199,7 +118,7 @@ function Steps() {
 	}, [inView, sayOnce])
 
 	return (
-		<section className="steps" data-p="sticky" ref={ref} id="recorrido">
+		<section className="steps grid-bg" data-p="sticky" ref={ref} id="recorrido">
 			<div className="steps__sticky">
 				<header className="section-head">
 					<span className="kicker mono">01 / {t("steps.kicker")}</span>
@@ -336,7 +255,8 @@ const Home = () => {
 
 	return (
 		<>
-			<Hero count={firmas.data?.length} />
+			<Dive />
+			<Marquee count={firmas.data?.length} />
 			<Intro />
 			<Steps />
 			<section className="sign" id="firmar" data-p>

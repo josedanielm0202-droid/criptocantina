@@ -209,9 +209,14 @@ export function SignForm({ firmas }: { firmas: FirmaUI[] | undefined }) {
 						{t("form.counter", { n: bytes, max: MAX_BYTES })}
 					</span>
 				</div>
-				<div className="counter-bar" aria-hidden>
+				<div
+					className={`counter-bar ${tooLong ? "counter-bar--over" : bytes > MAX_BYTES * 0.85 ? "counter-bar--near" : ""}`}
+					aria-hidden
+				>
 					<span
-						style={{ width: `${Math.min(100, (bytes / MAX_BYTES) * 100)}%` }}
+						style={{
+							transform: `scaleX(${Math.min(1, bytes / MAX_BYTES).toFixed(3)})`,
+						}}
 					/>
 				</div>
 

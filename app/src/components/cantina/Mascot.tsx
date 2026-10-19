@@ -335,8 +335,6 @@ export interface MascotProps {
 	idle?: boolean
 	className?: string
 	title?: string
-	/** Hacia dónde mira (-1..1). Mueve los ojos un poquito. */
-	look?: { x: number; y: number }
 }
 
 /**
@@ -349,10 +347,7 @@ export const Mascot = memo(function Mascot({
 	idle = true,
 	className = "",
 	title,
-	look,
 }: MascotProps) {
-	const lx = look ? Math.max(-1, Math.min(1, look.x)) * 7 : 0
-	const ly = look ? Math.max(-1, Math.min(1, look.y)) * 5 : 0
 	return (
 		<span
 			className={`mascot ${idle ? "mascot--idle" : ""} mascot--${expression} ${className}`}
@@ -368,7 +363,7 @@ export const Mascot = memo(function Mascot({
 			<svg viewBox="0 0 200 220" width="100%" height="100%">
 				<defs>
 					<radialGradient id="mascot-shine" cx="0.38" cy="0.28" r="0.75">
-						<stop offset="0" stopColor="#FFFFFF" stopOpacity="0.22" />
+						<stop offset="0" stopColor="#FFFFFF" stopOpacity="0.1" />
 						<stop offset="0.55" stopColor="#FFFFFF" stopOpacity="0" />
 					</radialGradient>
 				</defs>
@@ -385,7 +380,8 @@ export const Mascot = memo(function Mascot({
 					<Arms e={expression} />
 					<path d={BODY} fill={BLUE} />
 					<path d={BODY} fill="url(#mascot-shine)" />
-					<g transform={`translate(${lx.toFixed(1)} ${ly.toFixed(1)})`}>
+					{/* La mirada sigue al mouse vía las variables CSS --lx / --ly */}
+					<g className="mascot__look">
 						<g className="mascot__eyes">
 							<Eyes e={expression} />
 						</g>

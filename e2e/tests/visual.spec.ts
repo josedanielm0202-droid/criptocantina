@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test"
 
-// Visual guard for the hero. Create/refresh the baseline with
+// Visual guard for the intro (first frame of the dive). Create/refresh the baseline with
 // `npx playwright test tests/visual.spec.ts --update-snapshots`.
 
 test("home page visual", async ({ page }) => {
@@ -12,6 +12,6 @@ test("home page visual", async ({ page }) => {
 	).toBeVisible()
 	await expect(page).toHaveScreenshot("home.png", {
 		animations: "disabled",
-		mask: [page.locator(".starfield")],
+		mask: [page.locator(".dive__bubble-wrap")],
 	})
 })

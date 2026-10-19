@@ -27,9 +27,13 @@ Funciones (`contracts/guestbook`):
 
 ## La página
 
-- Experiencia inmersiva de una sola página: secciones guiadas por el scroll,
-  parallax, campo de estrellas en canvas, portal 3D en CSS y una moneda 3D que
-  se puede arrastrar.
+- Experiencia inmersiva de una sola página con estética mate (superficies
+  planas, grano fino, líneas y grilla). Intro: el personaje y el título
+  "Cripto Cantina" en primer plano y la cámara se mete en una pantalla que
+  crece hasta llenar la vista; la página arranca adentro (botón "Saltar intro").
+- Scroll suave con [Lenis](https://github.com/darkroomengineering/lenis) y un
+  solo loop de `requestAnimationFrame` (solo `transform`/`opacity`); respeta
+  "reducir movimiento" del sistema. Moneda 3D que se puede arrastrar.
 - Un personaje guía (SVG animado, 8 expresiones) que da tips rápidos en cada
   paso y reacciona: se emociona al firmar, se pone nervioso con un error.
 - Botón **?** con preguntas frecuentes explicadas por el personaje.

@@ -49,7 +49,7 @@ export function SignatureList({ query }: { query: UseQueryResult<FirmaUI[]> }) {
 					↻ <span className="hide-sm">{t("list.refresh")}</span>
 				</button>
 			</div>
-			<div className="editor__body">
+			<div className="editor__body" data-lenis-prevent>
 				<p className="code-line code-line--muted">
 					<span className="ln">{ln()}</span>
 					<span>

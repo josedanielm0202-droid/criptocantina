@@ -47,3 +47,12 @@ test("help panel opens with the FAQ", async ({ page }) => {
 	await expect(page.getByRole("dialog")).toBeVisible()
 	await expect(page.locator(".faq__q").first()).toBeVisible()
 })
+
+test("intro can be skipped and lands on the hero", async ({ page }) => {
+	await page.goto("/")
+	await page.locator(".dive__skip").click()
+	await expect(page.locator("html")).not.toHaveClass(/in-intro/, {
+		timeout: 6000,
+	})
+	await expect(page.locator(".dive")).toHaveClass(/dive--inside/)
+})

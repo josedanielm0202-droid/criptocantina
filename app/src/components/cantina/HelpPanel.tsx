@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { useLang } from "../../hooks/useLang"
 import { type DictKey } from "../../i18n"
 import { CONTRACT_ID, contractUrl } from "../../lib/guestbook"
+import { lockScroll } from "../../lib/smooth"
 import { type Expression, Mascot } from "./Mascot"
 
 const QUESTIONS: {
@@ -47,10 +48,10 @@ export function HelpPanel({
 		closeRef.current?.focus()
 		const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose()
 		window.addEventListener("keydown", onKey)
-		document.body.classList.add("no-scroll")
+		lockScroll(true)
 		return () => {
 			window.removeEventListener("keydown", onKey)
-			document.body.classList.remove("no-scroll")
+			lockScroll(false)
 		}
 	}, [open, onClose])
 
@@ -96,7 +97,7 @@ export function HelpPanel({
 					</p>
 				</div>
 
-				<div className="help__body">
+				<div className="help__body" data-lenis-prevent>
 					<p className="help__line help__line--muted">
 						<span className="ln">{ln()}</span>
 						<span>{"<!-- " + t("help.subtitle") + " -->"}</span>
