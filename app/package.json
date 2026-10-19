@@ -8,6 +8,7 @@
     "start": "concurrently --kill-others-on-fail --names stellar,vite -c gray,green --pad-prefix \"stellar scaffold watch\" \"vite\"",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
+    "build:pages": "vite build --base=/criptocantina/ && node -e \"const f=require('fs');f.copyFileSync('dist/index.html','dist/404.html');f.writeFileSync('dist/.nojekyll','')\"",
     "lint": "eslint .",
     "format": "prettier . --write",
     "prepare": "husky",
