@@ -1,4 +1,4 @@
-import { memo } from "react"
+import { memo, useEffect, useRef } from "react"
 
 export type Expression =
 	| "neutral"
@@ -340,6 +340,25 @@ const Eyes = ({ e }: { e: Expression }) => {
 	}
 }
 
+/**
+ * Un solo IntersectionObserver para todos los personajes: los que no se ven
+ * reciben `data-off` y sus animaciones quedan en pausa (ver cantina.css).
+ */
+let visIO: IntersectionObserver | null = null
+const getVisIO = () =>
+	(visIO ??= new IntersectionObserver(
+		(entries) =>
+			entries.forEach((e) =>
+				// atributo (no clase): React reescribe className al cambiar la expresión
+				e.target.toggleAttribute("data-off", !e.isIntersecting),
+			),
+		{ rootMargin: "120px" },
+	))
+const watchVisibility = (el: Element) => {
+	if (typeof IntersectionObserver !== "undefined") getVisIO().observe(el)
+}
+const unwatchVisibility = (el: Element) => visIO?.unobserve(el)
+
 export interface MascotProps {
 	expression?: Expression
 	size?: number | string
@@ -360,8 +379,16 @@ export const Mascot = memo(function Mascot({
 	className = "",
 	title,
 }: MascotProps) {
+	const ref = useRef<HTMLSpanElement>(null)
+	useEffect(() => {
+		const el = ref.current
+		if (!el) return
+		watchVisibility(el)
+		return () => unwatchVisibility(el)
+	}, [])
 	return (
 		<span
+			ref={ref}
 			className={`mascot ${idle ? "mascot--idle" : ""} mascot--${expression} ${className}`}
 			style={{
 				display: "inline-block",

@@ -7,7 +7,7 @@ import {
 	prefersReducedMotion,
 	scrollToY,
 } from "../../lib/smooth"
-import { Hero, INTRO_DONE } from "./Hero"
+import { Hero, INTRO_DONE, INTRO_PLAY } from "./Hero"
 import { EXPRESSIONS, type Expression, Mascot } from "./Mascot"
 import { onFrame, trackBox } from "./ScrollFX"
 
@@ -43,6 +43,9 @@ export function Dive() {
 	const titleR = useRef<HTMLSpanElement>(null)
 	const hero = useRef<HTMLDivElement>(null)
 	const fg = useRef<HTMLDivElement>(null)
+	const tag = useRef<HTMLParagraphElement>(null)
+	const fgMascot = useRef<HTMLDivElement>(null)
+	const bubble = useRef<HTMLSpanElement>(null)
 	const cue = useRef<HTMLDivElement>(null)
 
 	useEffect(() => {
@@ -65,12 +68,21 @@ export function Dive() {
 		}
 
 		root.classList.add("in-intro")
-		// Intro automático al cargar (cuando las fuentes estén listas)
+		// Intro automático al cargar: cuando las fuentes estén listas y el
+		// navegador ya pintó un par de frames (así no arranca en medio del
+		// trabajo pesado de la carga y no da tirones al inicio).
 		let played = false
+		let r1 = 0
+		let r2 = 0
 		const play = () => {
 			if (played) return
 			played = true
-			s.classList.add("dive--play")
+			r1 = requestAnimationFrame(() => {
+				r2 = requestAnimationFrame(() => {
+					s.classList.add("dive--play")
+					window.dispatchEvent(new Event(INTRO_PLAY))
+				})
+			})
 		}
 		void document.fonts?.ready.then(play)
 		const safety = setTimeout(play, 700)
@@ -79,6 +91,8 @@ export function Dive() {
 		let lastKey = ""
 		let s0 = 0.34
 		let vwPrev = 0
+		let lastRadius = ""
+		let lastFgHidden: boolean | null = null
 
 		// Top/alto de la sección cacheados: el bucle no lee el layout en cada frame
 		const { box, untrack } = trackBox(s)
@@ -113,10 +127,14 @@ export function Dive() {
 				world.current.style.transform = full ? "none" : `scale(${k.toFixed(5)})`
 			if (screen.current) {
 				screen.current.style.transform = full ? "none" : `scale(${s0})`
-				const radius = (16 * (1 - z)) / (s0 * k)
-				screen.current.style.borderRadius = full
-					? "0"
-					: `${radius.toFixed(2)}px`
+				// Redondeo en px enteros: cambiar el radio obliga a volver a pintar
+				// toda la pantalla, así que solo se escribe cuando cambia de verdad
+				// (≈ 1 de cada varios frames en vez de todos). Diferencia < 1 px.
+				const radius = full ? "0" : `${Math.round((16 * (1 - z)) / (s0 * k))}px`
+				if (radius !== lastRadius) {
+					lastRadius = radius
+					screen.current.style.borderRadius = radius
+				}
 			}
 			if (chrome.current)
 				chrome.current.style.opacity = String(1 - clamp01((z - 0.7) / 0.22))
@@ -139,9 +157,19 @@ export function Dive() {
 				titleR.current.style.transform = `translate3d(${split.toFixed(1)}px,0,0)`
 				titleR.current.style.opacity = tOp
 			}
-			if (fg.current) {
-				fg.current.style.setProperty("--a", a.toFixed(4))
-				fg.current.style.visibility = a >= 0.999 ? "hidden" : "visible"
+			// Primer plano: se escriben transform/opacity directo en cada capa (antes
+			// una variable CSS en el contenedor recalculaba todo su contenido).
+			if (tag.current) tag.current.style.opacity = String(clamp01(1 - a * 4))
+			if (fgMascot.current) {
+				fgMascot.current.style.transform = `translate3d(0,${(a * 0.16 * vh).toFixed(2)}px,0) scale(${(1 + a * a * 3.4).toFixed(4)})`
+				fgMascot.current.style.opacity = String(clamp01((0.62 - a) * 3.2))
+			}
+			if (bubble.current)
+				bubble.current.style.opacity = String(clamp01(1 - a * 8))
+			const fgHidden = a >= 0.999
+			if (fg.current && fgHidden !== lastFgHidden) {
+				lastFgHidden = fgHidden
+				fg.current.style.visibility = fgHidden ? "hidden" : "visible"
 			}
 			if (cue.current)
 				cue.current.style.opacity = String(1 - clamp01((p - 0.02) / 0.08))
@@ -155,6 +183,8 @@ export function Dive() {
 			off()
 			untrack()
 			clearTimeout(safety)
+			cancelAnimationFrame(r1)
+			cancelAnimationFrame(r2)
 			root.classList.remove("in-intro")
 		}
 	}, [])
@@ -211,7 +241,9 @@ export function Dive() {
 				</div>
 
 				<div className="dive__fg" ref={fg} aria-hidden>
-					<p className="dive__tag mono">{t("intro.tag")}</p>
+					<p className="dive__tag mono" ref={tag}>
+						{t("intro.tag")}
+					</p>
 					<div className="dive__title">
 						<span ref={titleL} className="dive__word">
 							{w1.split("").map((ch, i) => (
@@ -231,8 +263,8 @@ export function Dive() {
 							))}
 						</span>
 					</div>
-					<div className="dive__mascot">
-						<span className="dive__bubble-wrap">
+					<div className="dive__mascot" ref={fgMascot}>
+						<span className="dive__bubble-wrap" ref={bubble}>
 							<span className="dive__bubble">{t("intro.hello")}</span>
 						</span>
 						<Mascot size="100%" expression="neutral" />

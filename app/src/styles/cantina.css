@@ -473,6 +473,13 @@ textarea:focus-visible {
 	flex-shrink: 0;
 }
 
+/* Fuera de pantalla: animaciones en pausa (los ojos y la sombra del SVG se
+   animan en el hilo principal y obligan a repintar aunque no se vean) */
+.mascot[data-off],
+.mascot[data-off] * {
+	animation-play-state: paused !important;
+}
+
 .mascot svg {
 	overflow: visible;
 }
@@ -714,6 +721,7 @@ textarea:focus-visible {
 	font-size: 26px;
 	color: var(--muted);
 	pointer-events: none;
+	will-change: opacity;
 }
 
 .dive__chrome .dots i {
@@ -769,7 +777,8 @@ textarea:focus-visible {
 	text-transform: uppercase;
 	color: var(--muted);
 	margin: 0;
-	opacity: calc(1 - var(--a) * 4);
+	/* opacity la escribe Dive.tsx en cada frame (capa propia, sin repintar) */
+	will-change: opacity;
 }
 
 .dive__title {
@@ -810,9 +819,7 @@ textarea:focus-visible {
 	position: relative;
 	width: min(30vw, 40vh);
 	aspect-ratio: 200 / 220;
-	transform: translate3d(0, calc(var(--a) * 16vh), 0)
-		scale(calc(1 + var(--a) * var(--a) * 3.4));
-	opacity: clamp(0, calc((0.62 - var(--a)) * 3.2), 1);
+	/* transform/opacity los escribe Dive.tsx según el scroll */
 	will-change: transform, opacity;
 }
 
@@ -851,7 +858,7 @@ textarea:focus-visible {
 	position: absolute;
 	left: 78%;
 	top: 4%;
-	opacity: clamp(0, calc(1 - var(--a) * 8), 1);
+	will-change: opacity;
 }
 
 /* Línea de corte + indicador */
@@ -864,6 +871,7 @@ textarea:focus-visible {
 	display: grid;
 	gap: 0.7rem;
 	pointer-events: none;
+	will-change: opacity;
 }
 
 .dive__cut {

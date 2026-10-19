@@ -12,9 +12,14 @@ export interface FirmaUI {
 
 export const FIRMAS_KEY = ["guestbook", "firmas"] as const
 
-/** Lee todas las firmas (simulación de `listar`, no cuesta nada). */
-export function useFirmas() {
+/**
+ * Lee todas las firmas (simulación de `listar`, no cuesta nada).
+ * `enabled = false` lo pospone (Home lo activa al terminar el intro, para que
+ * decodificar la respuesta no le quite frames a la animación).
+ */
+export function useFirmas(enabled = true) {
 	return useQuery({
+		enabled,
 		queryKey: FIRMAS_KEY,
 		queryFn: async (): Promise<FirmaUI[]> => {
 			const tx = await guestbook.listar()
@@ -33,11 +38,11 @@ export function useFirmas() {
 }
 
 /** Escucha el evento `firmado` del contrato y refresca la lista en vivo. */
-export function useFirmadoLive(onNew?: () => void) {
+export function useFirmadoLive(onNew?: () => void, enabled = true) {
 	const qc = useQueryClient()
 	const handler = useCallback(() => {
 		void qc.invalidateQueries({ queryKey: FIRMAS_KEY })
 		onNew?.()
 	}, [qc, onNew])
-	useSubscription(CONTRACT_ID, "firmado", handler, 6000)
+	useSubscription(CONTRACT_ID, "firmado", handler, 6000, enabled)
 }

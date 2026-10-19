@@ -1,8 +1,15 @@
 import { labPrefix } from "@stellar-scaffold/app-lib"
-import { useCallback, useEffect, useRef, useState } from "react"
+import {
+	startTransition,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from "react"
 import { Coin3D } from "../components/cantina/Coin3D"
 import { Dive } from "../components/cantina/Dive"
 import { useGuide } from "../components/cantina/Guide"
+import { INTRO_PLAY } from "../components/cantina/Hero"
 import { Mascot } from "../components/cantina/Mascot"
 import { SignatureList } from "../components/cantina/SignatureList"
 import { SignForm } from "../components/cantina/SignForm"
@@ -11,6 +18,7 @@ import { useInView } from "../hooks/useInView"
 import { useLang } from "../hooks/useLang"
 import { type DictKey } from "../i18n"
 import { CONTRACT_ID, contractUrl, MAX_BYTES } from "../lib/guestbook"
+import { prefersReducedMotion } from "../lib/smooth"
 
 /** Texto que se "enciende" palabra por palabra con el scroll. */
 function ScrollWords({
@@ -243,43 +251,121 @@ function Footer() {
 	)
 }
 
+const STAGES = 6
+
+/**
+ * Las secciones de abajo del intro se montan por partes, después de que el
+ * intro automático termina (o apenas el usuario hace scroll / toca algo).
+ * Así la carga inicial no compite con la animación del intro y cada parte se
+ * renderiza en una transición que no bloquea los frames.
+ */
+function useStagedMount() {
+	const [n, setN] = useState(() =>
+		prefersReducedMotion() || location.hash ? STAGES : 0,
+	)
+	const [go, setGo] = useState(false)
+
+	useEffect(() => {
+		if (n >= STAGES) return
+		let fired = false
+		const start = () => {
+			if (fired) return
+			fired = true
+			setGo(true)
+		}
+		const all = () => setN(STAGES) // un clic (p. ej. en un enlace #firmar): ya
+		let afterIntro: ReturnType<typeof setTimeout> | undefined
+		const onPlay = () => {
+			clearTimeout(afterIntro)
+			afterIntro = setTimeout(start, 2600)
+		}
+		window.addEventListener(INTRO_PLAY, onPlay)
+		const safety = setTimeout(start, 6000)
+		const opts = { passive: true, once: true } as const
+		window.addEventListener("wheel", start, opts)
+		window.addEventListener("touchstart", start, opts)
+		window.addEventListener("keydown", start, opts)
+		window.addEventListener("scroll", start, opts)
+		window.addEventListener("pointerdown", all, opts)
+		return () => {
+			window.removeEventListener(INTRO_PLAY, onPlay)
+			clearTimeout(afterIntro)
+			clearTimeout(safety)
+			window.removeEventListener("wheel", start)
+			window.removeEventListener("touchstart", start)
+			window.removeEventListener("keydown", start)
+			window.removeEventListener("scroll", start)
+			window.removeEventListener("pointerdown", all)
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [])
+
+	useEffect(() => {
+		if (!go || n >= STAGES) return
+		const next = () =>
+			startTransition(() => setN((c) => Math.min(STAGES, c + 1)))
+		const ric = window.requestIdleCallback
+		if (ric) {
+			const id = ric(next, { timeout: 120 })
+			return () => window.cancelIdleCallback(id)
+		}
+		const id = setTimeout(next, 16)
+		return () => clearTimeout(id)
+	}, [go, n])
+
+	return n
+}
+
 const Home = () => {
 	const { t } = useLang()
 	const { say } = useGuide()
-	const firmas = useFirmas()
+	const shown = useStagedMount()
+	// La lista y los eventos se piden cuando empiezan a montarse las secciones
+	const ready = shown >= 1
+	const firmas = useFirmas(ready)
 	const onNew = useCallback(
 		() => say("guide.newSig", "sorprendido", 3000),
 		[say],
 	)
-	useFirmadoLive(onNew)
+	useFirmadoLive(onNew, ready)
 
 	return (
 		<>
 			<Dive />
-			<Marquee count={firmas.data?.length} />
-			<Intro />
-			<Steps />
-			<section className="sign" id="firmar" data-p>
-				<header className="section-head" data-reveal>
-					<span className="kicker mono">{t("form.kicker")}</span>
-					<h2>
-						{t("form.title")} <em className="serif">{t("form.titleItalic")}</em>
-					</h2>
-				</header>
-				<SignForm firmas={firmas.data} />
-			</section>
-			<section className="book" id="libro">
-				<header className="section-head" data-reveal>
-					<span className="kicker mono">{t("list.kicker")}</span>
-					<h2>
-						{t("list.title")} <em className="serif">{t("list.titleItalic")}</em>
-					</h2>
-					<p className="book__sub mono">{t("list.subtitle")}</p>
-				</header>
-				<SignatureList query={firmas} />
-			</section>
-			<Contract />
-			<Footer />
+			{shown >= 1 && (
+				<>
+					<Marquee count={firmas.data?.length} />
+					<Intro />
+				</>
+			)}
+			{shown >= 2 && <Steps />}
+			{shown >= 3 && (
+				<section className="sign" id="firmar" data-p>
+					<header className="section-head" data-reveal>
+						<span className="kicker mono">{t("form.kicker")}</span>
+						<h2>
+							{t("form.title")}{" "}
+							<em className="serif">{t("form.titleItalic")}</em>
+						</h2>
+					</header>
+					<SignForm firmas={firmas.data} />
+				</section>
+			)}
+			{shown >= 4 && (
+				<section className="book" id="libro">
+					<header className="section-head" data-reveal>
+						<span className="kicker mono">{t("list.kicker")}</span>
+						<h2>
+							{t("list.title")}{" "}
+							<em className="serif">{t("list.titleItalic")}</em>
+						</h2>
+						<p className="book__sub mono">{t("list.subtitle")}</p>
+					</header>
+					<SignatureList query={firmas} />
+				</section>
+			)}
+			{shown >= 5 && <Contract />}
+			{shown >= 6 && <Footer />}
 		</>
 	)
 }

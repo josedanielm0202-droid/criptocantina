@@ -6,6 +6,8 @@ import { type Expression, Mascot } from "./Mascot"
 import { onFrame } from "./ScrollFX"
 
 export const INTRO_DONE = "cantina:intro-done"
+/** El intro automático (título + personaje) empezó a reproducirse. */
+export const INTRO_PLAY = "cantina:intro-play"
 
 /**
  * Portada de la página. Vive dentro de la "pantalla" del intro: cuando la
