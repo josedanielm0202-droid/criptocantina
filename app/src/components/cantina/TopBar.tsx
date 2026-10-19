@@ -1,12 +1,14 @@
 import {
-	connectWallet,
+	ensureFreighter,
 	fundAccount,
+	isFreighterDetected,
 	networkStatus,
+	openWalletModal,
 	profileModal,
 	shortAddress,
 	stellarNetwork,
 } from "@stellar-scaffold/app-lib"
-import { useTransition } from "react"
+import { useRef, useState, useTransition } from "react"
 import { useLang } from "../../hooks/useLang"
 import { useWallet } from "../../hooks/useWallet"
 import { type DictKey } from "../../i18n"
@@ -45,17 +47,50 @@ export function FundButton({ className = "" }: { className?: string }) {
 	)
 }
 
+/** Ya avisamos que Freighter no responde (compartido entre botones). */
+let warnedNoFreighter = false
+
 export function ConnectButton({ className = "" }: { className?: string }) {
 	const { t } = useLang()
+	const { say } = useGuide()
 	const { isPending } = useWallet()
+	const [checking, setChecking] = useState(false)
+	const busy = useRef(false)
+
+	const onConnect = async () => {
+		if (busy.current) return
+		busy.current = true
+		setChecking(true)
+		try {
+			// Normalmente ya se detectó al cargar la página y esto es instantáneo.
+			let ok = isFreighterDetected()
+			if (!ok && !warnedNoFreighter) ok = await ensureFreighter(4500)
+			if (!ok && !warnedNoFreighter) {
+				// Primera vez: explicamos qué pasa en vez de abrir el modal con
+				// «Install». Si vuelve a tocar, abrimos el modal igual (por si quiere
+				// usar otra wallet).
+				warnedNoFreighter = true
+				say("wallet.noFreighter", "triste", 12000)
+				return
+			}
+			setChecking(false)
+			await openWalletModal()
+		} catch {
+			// El usuario cerró el modal o canceló en la wallet.
+		} finally {
+			busy.current = false
+			setChecking(false)
+		}
+	}
+
 	return (
 		<button
 			type="button"
 			className={`btn btn--primary ${className}`}
-			onClick={() => void connectWallet().catch(() => undefined)}
-			disabled={isPending}
+			onClick={() => void onConnect()}
+			disabled={isPending || checking}
 		>
-			{isPending ? t("nav.loading") : t("nav.connect")}
+			{isPending || checking ? t("nav.loading") : t("nav.connect")}
 		</button>
 	)
 }

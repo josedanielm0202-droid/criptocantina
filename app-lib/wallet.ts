@@ -3,7 +3,12 @@ import {
 	type Networks,
 	StellarWalletsKit,
 } from "@creit.tech/stellar-wallets-kit"
+import {
+	FREIGHTER_ID,
+	FreighterModule,
+} from "@creit.tech/stellar-wallets-kit/modules/freighter"
 import { defaultModules } from "@creit.tech/stellar-wallets-kit/modules/utils"
+import { isConnected as freighterIsConnected } from "@stellar/freighter-api"
 import { Keypair, rpc, xdr } from "@stellar/stellar-sdk"
 import { allowHttp, networkPassphrase, rpcUrl, stellarNetwork } from "./env"
 
@@ -11,18 +16,125 @@ import { allowHttp, networkPassphrase, rpcUrl, stellarNetwork } from "./env"
 // any networks beside Testnet and Mainnet. Filter below based on dApp config.
 const CUSTOM_NETWORK_WALLETS = new Set(["freighter", "xbull", "hana"])
 
+// ---------------------------------------------------------------------------
+// Detección de Freighter más paciente.
+//
+// El kit le da a cada wallet solo 1 s para responder `isAvailable()` cuando se
+// abre el modal (`refreshSupportedWallets`). Freighter responde pasando por su
+// content script y su service worker (MV3); si el worker está dormido o el
+// navegador va lento, la respuesta llega después de ese segundo y el kit marca
+// Freighter como «Install» aunque esté instalada. Aquí la detectamos antes, con
+// reintentos y el timeout completo de freighter-api, y recordamos el resultado
+// para que el kit la vea disponible al instante.
+// ---------------------------------------------------------------------------
+
+declare global {
+	interface Window {
+		stellar?: { provider?: string; platform?: string }
+	}
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+/** Freighter Mobile (navegador interno) usa WalletConnect, no la extensión. */
+const isFreighterMobile = () =>
+	typeof window !== "undefined" &&
+	window.stellar?.provider === "freighter" &&
+	window.stellar?.platform === "mobile"
+
+let freighterSeen = false
+let freighterProbe: Promise<boolean> | null = null
+
+const pingFreighter = async (): Promise<boolean> => {
+	try {
+		// Espera hasta 2 s la respuesta de la extensión.
+		const res = await freighterIsConnected()
+		return !res.error && res.isConnected
+	} catch {
+		return false
+	}
+}
+
+/**
+ * Busca la extensión Freighter con reintentos (hasta ~7 s en el peor caso,
+ * normalmente responde en milisegundos). Comparte la búsqueda en curso y
+ * recuerda el resultado positivo; un resultado negativo se vuelve a intentar
+ * en la próxima llamada.
+ */
+export const detectFreighter = (attempts = 3): Promise<boolean> => {
+	if (freighterSeen) return Promise.resolve(true)
+	if (typeof window === "undefined" || isFreighterMobile())
+		return Promise.resolve(false)
+	if (!freighterProbe) {
+		freighterProbe = (async () => {
+			for (let i = 0; i < attempts; i++) {
+				if (await pingFreighter()) {
+					freighterSeen = true
+					return true
+				}
+				if (i < attempts - 1) await sleep(400)
+			}
+			console.warn(
+				"[wallet] Freighter no respondió. ¿Está instalada en este navegador/perfil y desbloqueada?",
+			)
+			return false
+		})().finally(() => {
+			freighterProbe = null
+		})
+	}
+	return freighterProbe
+}
+
+/** `true` si ya sabemos que la extensión Freighter respondió en esta pestaña. */
+export const isFreighterDetected = () => freighterSeen
+
+/** Igual que el módulo oficial, pero con la detección paciente de arriba. */
+class PatientFreighterModule extends FreighterModule {
+	override async isAvailable(): Promise<boolean> {
+		if (isFreighterMobile()) return false
+		return detectFreighter(2)
+	}
+}
+
+const withPatientFreighter = (mods: ReturnType<typeof defaultModules>) =>
+	mods.map((m) =>
+		m.productId === FREIGHTER_ID ? new PatientFreighterModule() : m,
+	)
+
 StellarWalletsKit.init({
 	network: networkPassphrase as Networks,
-	modules:
+	modules: withPatientFreighter(
 		stellarNetwork === "LOCAL" || stellarNetwork === "FUTURENET"
 			? defaultModules({
 					filterBy: (m) => CUSTOM_NETWORK_WALLETS.has(m.productId),
 				})
 			: defaultModules(),
+	),
 })
 
+// Calentamos la detección al cargar la página (solo pregunta si la extensión
+// existe; no pide acceso ni abre ninguna ventana de Freighter).
+if (typeof window !== "undefined") void detectFreighter()
+
+/**
+ * Espera (con tope) a saber si Freighter está. Devuelve `true` si respondió.
+ * Llamalo antes de `connectWallet` para que el modal la muestre disponible.
+ */
+export const ensureFreighter = async (maxWaitMs = 7000): Promise<boolean> => {
+	if (freighterSeen) return true
+	return Promise.race([detectFreighter(), sleep(maxWaitMs).then(() => false)])
+}
+
+/** Open the kit's modal right away, without waiting for Freighter detection. */
+export const openWalletModal = () => StellarWalletsKit.authModal()
+
 /** Open the built-in wallet-selection modal; resolves once a wallet is connected. */
-export const connectWallet = () => StellarWalletsKit.authModal()
+export const connectWallet = async () => {
+	// Si la búsqueda inicial sigue en curso, la esperamos un poco para que el
+	// kit no marque Freighter como «Install» por llegar tarde.
+	await ensureFreighter(2500)
+	return StellarWalletsKit.authModal()
+}
 
 /** Open the built-in profile modal (shows the connected account + disconnect). */
 export const profileModal = () => StellarWalletsKit.profileModal()

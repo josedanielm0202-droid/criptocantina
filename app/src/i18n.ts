@@ -133,6 +133,8 @@ const es = {
 	"err.unfunded":
 		"Tu cuenta no existe todavía en Testnet. Cargala con XLM de prueba y volvé a intentar.",
 	"err.noWallet": "Primero conectá tu wallet.",
+	"wallet.noFreighter":
+		"No encuentro Freighter en este navegador. Abrí la página en el perfil de Chrome donde la instalaste, desbloqueala y recargá. Tocá «Conectar wallet» otra vez para ver las demás wallets.",
 	"err.timeout":
 		"La red tardó demasiado en confirmar. Revisá el libro en unos segundos.",
 	"err.generic": "Algo salió mal: {msg}",
@@ -352,6 +354,8 @@ const en: Dict = {
 	"err.unfunded":
 		"Your account doesn't exist on Testnet yet. Fund it with test XLM and try again.",
 	"err.noWallet": "Connect your wallet first.",
+	"wallet.noFreighter":
+		"I can't find Freighter in this browser. Open the page in the Chrome profile where you installed it, unlock it and reload. Tap “Connect wallet” again to see the other wallets.",
 	"err.timeout":
 		"The network took too long to confirm. Check the book in a few seconds.",
 	"err.generic": "Something went wrong: {msg}",
