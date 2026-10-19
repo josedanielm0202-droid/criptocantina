@@ -77,8 +77,8 @@ Entrega del **Stellar Challenge #1: «El libro de visitas de la Cripto Cantina»
 ### Pasos
 
 ```bash
-git clone <url-de-este-repo>
-cd cripto-cantina
+git clone https://github.com/josedanielm0202-droid/criptocantina.git
+cd criptocantina
 npm install
 cp .env.example .env        # contiene STELLAR_NETWORK=testnet
 ```
