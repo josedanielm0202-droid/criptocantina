@@ -25,7 +25,10 @@ export function Coin3D() {
 		let ly = 0
 		let spun = 0
 		let raf = 0
+		let visible = false
 		const tick = () => {
+			raf = 0
+			if (!visible && !drag) return // fuera de pantalla: el bucle se pausa
 			if (!drag) {
 				ry += vy
 				rx += vx
@@ -36,8 +39,17 @@ export function Coin3D() {
 			el.style.transform = `rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg)`
 			raf = requestAnimationFrame(tick)
 		}
+		const io = new IntersectionObserver(
+			([entry]) => {
+				visible = !!entry?.isIntersecting
+				if (visible && !raf) raf = requestAnimationFrame(tick)
+			},
+			{ rootMargin: "100px" },
+		)
+		io.observe(el)
 		const down = (e: PointerEvent) => {
 			drag = true
+			if (!raf) raf = requestAnimationFrame(tick)
 			lx = e.clientX
 			ly = e.clientY
 			el.setPointerCapture(e.pointerId)
@@ -64,8 +76,8 @@ export function Coin3D() {
 		el.addEventListener("pointerdown", down)
 		window.addEventListener("pointermove", move)
 		window.addEventListener("pointerup", up)
-		raf = requestAnimationFrame(tick)
 		return () => {
+			io.disconnect()
 			cancelAnimationFrame(raf)
 			el.removeEventListener("pointerdown", down)
 			window.removeEventListener("pointermove", move)

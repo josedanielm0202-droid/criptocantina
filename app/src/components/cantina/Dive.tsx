@@ -9,7 +9,7 @@ import {
 } from "../../lib/smooth"
 import { Hero, INTRO_DONE } from "./Hero"
 import { EXPRESSIONS, type Expression, Mascot } from "./Mascot"
-import { onFrame } from "./ScrollFX"
+import { onFrame, trackBox } from "./ScrollFX"
 
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3)
 const easeInOutCubic = (t: number) =>
@@ -80,7 +80,11 @@ export function Dive() {
 		let s0 = 0.34
 		let vwPrev = 0
 
-		const off = onFrame((_y, vh) => {
+		// Top/alto de la sección cacheados: el bucle no lee el layout en cada frame
+		const { box, untrack } = trackBox(s)
+
+		const off = onFrame((y, vh) => {
+			if (box.height <= 0) return
 			const vw = window.innerWidth
 			if (vw !== vwPrev) {
 				vwPrev = vw
@@ -89,9 +93,8 @@ export function Dive() {
 				world.current?.style.setProperty("--s0", String(s0))
 				world.current?.style.setProperty("--gap", `${gap}px`)
 			}
-			const r = s.getBoundingClientRect()
-			const total = r.height - vh
-			const raw = clamp01(total > 0 ? -r.top / total : 1)
+			const total = box.height - vh
+			const raw = clamp01(total > 0 ? -(box.top - y) / total : 1)
 			// Lenis ya suaviza la rueda; en touch (scroll nativo) suavizamos aquí
 			pS = pS < 0 ? raw : getLenis() ? raw : lerp(pS, raw, 0.25)
 			if (Math.abs(pS - raw) < 0.0005) pS = raw
@@ -150,6 +153,7 @@ export function Dive() {
 
 		return () => {
 			off()
+			untrack()
 			clearTimeout(safety)
 			root.classList.remove("in-intro")
 		}

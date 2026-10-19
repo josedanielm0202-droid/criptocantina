@@ -30,7 +30,6 @@ interface GuideContextType {
 	/** Cambia la expresión sin decir nada. */
 	mood: (expression: Expression, ms?: number) => void
 	dismiss: () => void
-	expression: Expression
 }
 
 const GuideContext = createContext<GuideContextType | undefined>(undefined)
@@ -97,9 +96,11 @@ export const GuideProvider = ({ children }: { children: React.ReactNode }) => {
 		[],
 	)
 
+	// Valor estable: cambiar la expresión solo re-renderiza la guía flotante,
+	// no toda la página (antes cada burbuja re-renderizaba todo mientras scrolleás).
 	const value = useMemo(
-		() => ({ say, sayOnce, mood, dismiss, expression }),
-		[say, sayOnce, mood, dismiss, expression],
+		() => ({ say, sayOnce, mood, dismiss }),
+		[say, sayOnce, mood, dismiss],
 	)
 
 	const poke = () => {

@@ -116,7 +116,7 @@ function useMock(): FirmaUI[] | null {
 			"G" + Array.from({ length: 55 }, (_, k) => A[(i * 7 + k * 13 + ((i * k) % 5)) % 32]).join("")
 		return Array.from({ length: Number(n) }, (_, i) => ({
 			autor: addr(i),
-			mensaje: msgs[i % msgs.length],
+			mensaje: msgs[i % msgs.length] ?? "",
 			fecha: BigInt(base + i * 86400 * 2 + i * 3671),
 		})).reverse()
 	}, [])
