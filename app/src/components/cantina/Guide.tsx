@@ -120,7 +120,7 @@ export const GuideProvider = ({ children }: { children: React.ReactNode }) => {
 					onClick={poke}
 					aria-label={t("guide.mascot")}
 				>
-					<Mascot expression={expression} size={84} />
+					<Mascot expression={expression} size={62} />
 				</button>
 				{bubble && (
 					<button
