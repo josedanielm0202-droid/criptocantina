@@ -25,9 +25,9 @@ const BLUE = "#4285F4"
 const DARK = "#2A5FC4"
 const EYE = "#FFFFFF"
 
-/** Silueta: huevo redondeado (brazos y pies van aparte para que se lean como extremidades). */
+/** Silueta: huevo redondeado con aletas planas a los lados y dos pies abajo. */
 export const BODY =
-	"M100 14 C144 14 170 80 170 134 C170 174 140 198 100 198 C60 198 30 174 30 134 C30 80 56 14 100 14 Z"
+	"M100 14 C140 14 166 80 166 140 C166 156 172 170 182 182 C186 187 182 191 176 189 C171 187 167 185 163 183 C158 194 148 202 136 205 C134 212 122 214 114 211 C106 209 94 209 86 211 C78 214 66 212 64 205 C52 202 42 194 37 183 C33 185 29 187 24 189 C18 191 14 187 18 182 C28 170 34 156 34 140 C34 80 60 14 100 14 Z"
 
 const star = (cx: number, cy: number, r: number) => {
 	const pts: string[] = []
@@ -55,142 +55,87 @@ const spiral = (cx: number, cy: number, turns = 2.2, r = 11) => {
 	return d
 }
 
-/** Extremidad con contorno oscuro para que se distinga del cuerpo. */
-const Limb = ({ d, w = 17 }: { d: string; w?: number }) => (
-	<>
-		<path d={d} stroke={DARK} strokeWidth={w + 6} fill="none" strokeLinecap="round" />
-		<path d={d} stroke={BLUE} strokeWidth={w} fill="none" strokeLinecap="round" />
-	</>
-)
-
-const Hand = ({ cx, cy, r = 10 }: { cx: number; cy: number; r?: number }) => (
-	<circle cx={cx} cy={cy} r={r} fill={BLUE} stroke={DARK} strokeWidth="3" />
-)
-
-const Foot = ({ cx, dark = false }: { cx: number; dark?: boolean }) => (
-	<ellipse
-		cx={cx}
-		cy="203"
-		rx="23"
-		ry="12"
-		fill={dark ? DARK : BLUE}
-		stroke={DARK}
-		strokeWidth="3"
-	/>
-)
-
-const HangL = () => <Limb d="M50 124 C40 140 32 154 26 170" />
-const HangR = () => <Limb d="M150 124 C160 140 168 154 174 170" />
+/** Línea finita y sutil donde una extremidad pasa por delante del cuerpo. */
+const LINE = { stroke: DARK, strokeWidth: 2, fill: "none", strokeLinecap: "round" as const, opacity: 0.75 }
 
 /** Brazos en la cadera (enojado / determinado). */
 const HipArm = ({ side }: { side: "l" | "r" }) => (
-	<g transform={side === "r" ? "translate(207 0) scale(-1 1)" : "translate(-7 0)"}>
-		<path
-			d="M44 116 C24 112 12 126 12 142 C12 156 20 166 34 168 C40 168 42 162 38 158 C30 154 28 146 32 140 C36 136 40 134 44 132 Z"
-			fill={BLUE}
-			stroke={DARK}
-			strokeWidth="3"
-			strokeLinejoin="round"
-		/>
-		<Hand cx={40} cy={160} r={11} />
-	</g>
+	<path
+		transform={side === "r" ? "translate(200 0) scale(-1 1)" : undefined}
+		d="M36 118 C22 116 10 126 10 140 C10 156 18 168 32 170 C38 170 40 164 36 160 C28 156 26 146 30 140 C34 136 38 134 40 132 Z"
+		fill={BLUE}
+	/>
 )
 
-/** Capa de atrás: brazos y pies que salen detrás del cuerpo. */
+/** Aletas planas detrás del cuerpo (mismo azul, se funden con la silueta). */
 const Arms = ({ e }: { e: Expression }) => {
 	switch (e) {
-		case "triste":
-			return null
 		case "enojado":
 		case "determinado":
 			return (
 				<>
-					<Foot cx={70} />
-					<Foot cx={130} />
 					<HipArm side="l" />
 					<HipArm side="r" />
 				</>
 			)
 		case "emocionado":
 			return (
-				<>
-					<Foot cx={136} />
-					<Limb d="M58 96 C46 76 38 58 32 40" w={18} />
-					<Limb d="M142 96 C154 76 162 58 168 40" w={18} />
-					<Hand cx={31} cy={36} r={12} />
-					<Hand cx={169} cy={36} r={12} />
-				</>
+				<g fill={BLUE}>
+					<path d="M54 106 C40 86 28 62 20 38 C18 29 29 25 36 33 C50 52 66 70 82 92 Z" />
+					<path d="M146 106 C160 86 172 62 180 38 C182 29 171 25 164 33 C150 52 134 70 118 92 Z" />
+				</g>
 			)
-		case "sorprendido":
-			return <Foot cx={70} />
 		case "divertido":
 			return (
-				<>
-					<Foot cx={70} />
-					<Foot cx={130} />
-					<HangL />
-					<Limb d="M150 140 C160 138 168 134 176 130" w={16} />
-				</>
-			)
-		case "nervioso":
-			return (
-				<>
-					<Foot cx={70} />
-					<Foot cx={130} />
-					<HangR />
-				</>
+				<path
+					d="M150 126 C160 126 170 122 176 118 L178 142 C168 144 160 148 150 152 Z"
+					fill={BLUE}
+				/>
 			)
 		default:
-			return (
-				<>
-					<Foot cx={70} />
-					<Foot cx={130} />
-					<HangL />
-					<HangR />
-				</>
-			)
+			return null
 	}
 }
 
-/** Detalles en primer plano (brazos por delante, pies oscuros, gotas…). */
+/** Detalles en primer plano (líneas de brazos, pies oscuros, gotas…). */
 const Front = ({ e }: { e: Expression }) => {
 	switch (e) {
 		case "triste":
 			return (
 				<>
-					<ellipse cx="44" cy="196" rx="21" ry="14" fill={DARK} transform="rotate(-35 44 196)" />
-					<ellipse cx="156" cy="196" rx="21" ry="14" fill={DARK} transform="rotate(35 156 196)" />
-					{/* manos sobre las rodillas */}
-					<Limb d="M48 124 C50 148 52 166 54 180" w={15} />
-					<Limb d="M152 124 C150 148 148 166 146 180" w={15} />
-					<Hand cx={54} cy={184} />
-					<Hand cx={146} cy={184} />
+					<path d="M40 118 C46 152 62 176 88 190" {...LINE} />
+					<path d="M160 118 C154 152 138 176 112 190" {...LINE} />
+					<ellipse cx="36" cy="194" rx="19" ry="14" fill={DARK} transform="rotate(-35 36 194)" />
+					<ellipse cx="164" cy="194" rx="19" ry="14" fill={DARK} transform="rotate(35 164 194)" />
 				</>
 			)
 		case "enojado":
-			return <ellipse cx="62" cy="204" rx="22" ry="12" fill={DARK} transform="rotate(12 62 204)" />
+			return <ellipse cx="58" cy="200" rx="19" ry="11" fill={DARK} transform="rotate(12 58 200)" />
 		case "emocionado":
-			return <ellipse cx="54" cy="190" rx="16" ry="21" fill={DARK} transform="rotate(-30 54 190)" />
+			return <ellipse cx="40" cy="176" rx="16" ry="20" fill={DARK} transform="rotate(-30 40 176)" />
 		case "sorprendido":
 			return (
 				<>
 					{/* manitas en las mejillas */}
-					<Limb d="M42 178 C42 162 50 150 62 142" w={15} />
-					<Limb d="M158 178 C158 162 150 150 138 142" w={15} />
-					<Hand cx={64} cy={140} />
-					<Hand cx={136} cy={140} />
-					<ellipse cx="146" cy="200" rx="21" ry="14" fill={DARK} transform="rotate(-35 146 200)" />
+					<path d="M36 158 C50 166 66 160 76 144" {...LINE} />
+					<path d="M164 158 C150 166 134 160 124 144" {...LINE} />
+					<ellipse cx="166" cy="192" rx="20" ry="14" fill={DARK} transform="rotate(-35 166 192)" />
 				</>
 			)
 		case "divertido":
 			return (
-				<g stroke={DARK} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round">
-					{/* pulgar arriba: el pulgar sale del borde del puño, junto al cuerpo */}
-					<rect x="167" y="86" width="13" height="34" rx="6.5" fill={BLUE} />
-					<rect x="166" y="112" width="31" height="32" rx="11" fill={BLUE} />
-					<path d="M182 121 H196" fill="none" />
-					<path d="M182 129 H196" fill="none" />
-					<path d="M182 137 H195" fill="none" />
+				<g>
+					{/* pulgar arriba: el pulgar sale del borde del puño junto al cuerpo */}
+					<g fill={BLUE}>
+						<rect x="171" y="92" width="12" height="32" rx="6" />
+						<rect x="168" y="114" width="28" height="30" rx="10" />
+					</g>
+					<g {...LINE} strokeWidth={1.6}>
+						<path d="M183 116 V123" />
+						<path d="M184 123 H195" />
+						<path d="M184 130 H195" />
+						<path d="M184 137 H194" />
+					</g>
 				</g>
 			)
 		case "determinado":
@@ -205,18 +150,13 @@ const Front = ({ e }: { e: Expression }) => {
 		case "nervioso":
 			return (
 				<>
-					{/* mano rascando la cabeza */}
-					<Limb d="M42 140 C26 112 30 70 54 46 C60 40 66 36 72 34" w={17} />
-					<Hand cx={76} cy={32} r={12} />
-					<g stroke={DARK} strokeWidth="2.5" strokeLinecap="round">
-						<path d="M88 18 L94 12" />
-						<path d="M92 26 L100 22" />
-					</g>
-					{/* gota de sudor */}
+					{/* aleta rascando la cabeza: mismo azul, solo una línea fina la separa */}
 					<path
-						d="M148 98 C142 108 140 114 140 118 A8 8 0 0 0 156 118 C156 114 154 108 148 98 Z"
-						fill={EYE}
+						d="M30 150 C18 112 22 64 52 38 C60 31 72 27 84 31 C89 33 87 40 81 40 C70 40 62 46 56 54 C42 76 40 108 48 140 Z"
+						fill={BLUE}
 					/>
+					<path d="M48 140 C40 108 42 76 56 54 C62 46 70 40 81 40" {...LINE} />
+					<path d="M148 98 C142 108 140 114 140 118 A8 8 0 0 0 156 118 C156 114 154 108 148 98 Z" fill={EYE} />
 				</>
 			)
 		default:
@@ -229,7 +169,7 @@ const Eyes = ({ e }: { e: Expression }) => {
 		case "triste":
 			return (
 				<g fill={EYE}>
-					{/* ojos caídos: borde superior inclinado hacia afuera */}
+					{/* ojos ca├¡dos: borde superior inclinado hacia afuera */}
 					<path d="M66 100 Q76 86 92 84 L92 116 A13 13 0 0 1 66 116 Z" />
 					<path d="M134 100 Q124 86 108 84 L108 116 A13 13 0 0 0 134 116 Z" />
 				</g>
@@ -323,7 +263,7 @@ const getVisIO = () =>
 	(visIO ??= new IntersectionObserver(
 		(entries) =>
 			entries.forEach((e) =>
-				// atributo (no clase): React reescribe className al cambiar la expresión
+				// atributo (no clase): React reescribe className al cambiar la expresi├│n
 				e.target.toggleAttribute("data-off", !e.isIntersecting),
 			),
 		{ rootMargin: "120px" },
@@ -336,13 +276,13 @@ const unwatchVisibility = (el: Element) => visIO?.unobserve(el)
 export interface MascotProps {
 	expression?: Expression
 	size?: number | string
-	/** Animación de reposo (flotar + parpadear). */
+	/** Animaci├│n de reposo (flotar + parpadear). */
 	idle?: boolean
 	className?: string
 	title?: string
 }
 
-/** Centro de los ojos (unidades del viewBox 200×220) por expresión: el
+/** Centro de los ojos (unidades del viewBox 200├ù220) por expresi├│n: el
  * parpadeo/giro de los ojos rota y escala alrededor de este punto. */
 const EYE_CENTER: Record<Expression, [number, number]> = {
 	neutral: [100, 102],
@@ -358,11 +298,11 @@ const EYE_CENTER: Record<Expression, [number, number]> = {
 const VB = "0 0 200 220"
 
 /**
- * El personaje guía de la Cripto Cantina, dibujado en SVG para que se vea
- * nítido a cualquier tamaño.
+ * El personaje gu├¡a de la Cripto Cantina, dibujado en SVG para que se vea
+ * n├¡tido a cualquier tama├▒o.
  *
- * Va en capas (sombra · cuerpo · ojos · detalles) para que cada parte que se
- * anima sea su propia caja HTML: así flotar, parpadear, girar los ojos, etc.
+ * Va en capas (sombra ┬╖ cuerpo ┬╖ ojos ┬╖ detalles) para que cada parte que se
+ * anima sea su propia caja HTML: as├¡ flotar, parpadear, girar los ojos, etc.
  * corren en la GPU (compositor) y no obligan a repintar el SVG en cada frame.
  */
 export const Mascot = memo(function Mascot({
@@ -395,7 +335,7 @@ export const Mascot = memo(function Mascot({
 		>
 			<span className="mascot__bob">
 				<svg className="mascot__shadow" viewBox={VB}>
-					<ellipse cx="100" cy="216" rx="64" ry="5" fill="#000" />
+					<ellipse cx="100" cy="214" rx="62" ry="5" fill="#000" />
 				</svg>
 				<span className="mascot__body" key={expression}>
 					<svg viewBox={VB}>
@@ -406,10 +346,10 @@ export const Mascot = memo(function Mascot({
 							</radialGradient>
 						</defs>
 						<Arms e={expression} />
-						<path d={BODY} fill={BLUE} stroke={DARK} strokeWidth="3" />
+						<path d={BODY} fill={BLUE} />
 						<path d={BODY} fill="url(#mascot-shine)" />
 					</svg>
-					{/* La mirada sigue al mouse vía las variables CSS --lx / --ly */}
+					{/* La mirada sigue al mouse v├¡a las variables CSS --lx / --ly */}
 					<span className="mascot__look">
 						<svg
 							className="mascot__eyes"
