@@ -30,6 +30,14 @@ const QUESTIONS: {
 		e: "sorprendido",
 		link: { href: contractUrl(), key: "help.link.contract" },
 	},
+	{
+		n: 9,
+		e: "emocionado",
+		link: {
+			href: "https://cavos.xyz/embedded-stellar-wallet",
+			key: "help.link.cavos",
+		},
+	},
 ]
 
 export function HelpPanel({

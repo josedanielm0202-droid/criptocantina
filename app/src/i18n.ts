@@ -243,6 +243,28 @@ const es = {
 		"Después de firmar te mostramos un enlace a stellar.expert, el explorador de bloques. También podés ver toda la actividad del contrato en su página.",
 	"help.link.freighter": "Descargar Freighter ↗",
 	"help.link.contract": "Ver el contrato en stellar.expert ↗",
+	"help.q9": "¿Y si no tengo Freighter? ¿Qué es Cavos?",
+	"help.a9":
+		"Podés entrar con Cavos usando Google, Apple o un código que te llega al correo, sin instalar nada. Cavos te crea una cuenta de Stellar (G…) propia: la llave se genera y queda en tu dispositivo, Cavos no la ve ni puede mover nada. Esa cuenta firma el libro igual que Freighter (el contrato la verifica con require_auth) y Cavos paga la comisión de testnet, así que no necesitás XLM. La primera vez que firmás se crea la cuenta en la red, por eso tarda un poquito más.",
+	"help.link.cavos": "Qué es Cavos ↗",
+	"cavos.signin": "Entrar con Cavos (Google/correo)",
+	"cavos.short": "Entrar con Cavos",
+	"cavos.title":
+		"Sin extensión: entrá con Google, Apple o un código por correo. Cavos paga la comisión.",
+	"cavos.disabled":
+		"Cavos todavía no está configurado en esta página (falta el App ID). Mientras tanto, usá «Conectar wallet».",
+	"cavos.account": "Tu cuenta Cavos",
+	"cavos.copy": "Copiar dirección",
+	"cavos.copied": "¡Copiada!",
+	"cavos.logout": "Cerrar sesión",
+	"cavos.or": "o",
+	"cavos.waiting": "Aprobá la firma en la ventanita de Cavos…",
+	"cavos.creating": "Creando tu cuenta en Testnet (solo la primera vez)…",
+	"guide.cavosSigning": "Aprobá la firma en Cavos 💪",
+	"guide.cavosConnected":
+		"¡Entraste con Cavos! Escribí tu mensaje, la comisión va por cuenta de ellos.",
+	"err.cavosRejected":
+		"Cancelaste la firma en Cavos. No pasó nada, podés intentarlo otra vez.",
 } as const
 
 export type DictKey = keyof typeof es
@@ -471,6 +493,28 @@ const en: Dict = {
 		"After signing we show you a link to stellar.expert, the block explorer. You can also see all of the contract's activity on its page.",
 	"help.link.freighter": "Get Freighter ↗",
 	"help.link.contract": "View the contract on stellar.expert ↗",
+	"help.q9": "What if I don't have Freighter? What is Cavos?",
+	"help.a9":
+		"You can sign in with Cavos using Google, Apple or a code sent to your email, with nothing to install. Cavos creates your own Stellar account (G…): the key is generated and stays on your device, and Cavos can't see it or move anything. That account signs the book just like Freighter (the contract checks it with require_auth) and Cavos pays the testnet fee, so you don't need any XLM. The account is created on the network the first time you sign, so that one takes a little longer.",
+	"help.link.cavos": "What is Cavos ↗",
+	"cavos.signin": "Sign in with Cavos (Google/email)",
+	"cavos.short": "Sign in with Cavos",
+	"cavos.title":
+		"No extension: sign in with Google, Apple or an email code. Cavos pays the fee.",
+	"cavos.disabled":
+		"Cavos isn't set up on this page yet (the App ID is missing). Meanwhile, use “Connect wallet”.",
+	"cavos.account": "Your Cavos account",
+	"cavos.copy": "Copy address",
+	"cavos.copied": "Copied!",
+	"cavos.logout": "Sign out",
+	"cavos.or": "or",
+	"cavos.waiting": "Approve the signature in the Cavos window…",
+	"cavos.creating": "Creating your Testnet account (first time only)…",
+	"guide.cavosSigning": "Approve the signature in Cavos 💪",
+	"guide.cavosConnected":
+		"You're in with Cavos! Write your message, the fee is on them.",
+	"err.cavosRejected":
+		"You cancelled the signature in Cavos. Nothing happened, you can try again.",
 }
 
 export const dictionaries: Record<Lang, Dict> = { es, en }

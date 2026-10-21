@@ -65,6 +65,24 @@ Entrega del **Stellar Challenge #1: «El libro de visitas de la Cripto Cantina»
 - Frontend en React + Vite + TypeScript
 - Stellar Wallets Kit + Freighter
 
+## Cavos (entrar con Google o correo)
+
+Además de **Conectar wallet** (Freighter), la cantina tiene un segundo botón: **Entrar con Cavos (Google/correo)**. [Cavos](https://cavos.xyz/embedded-stellar-wallet) es una wallet embebida: la persona entra con Google, Apple o un código de 9 caracteres que le llega al correo, sin instalar ninguna extensión.
+
+- Cavos le asigna una cuenta clásica de Stellar (`G…`). La llave se crea en el dispositivo y Cavos no la puede ver ni mover fondos.
+- Esa misma cuenta es el `autor` de `firmar(autor, mensaje)` y cumple `require_auth(autor)`. Se firma con `invokeContract`, que simula la llamada, firma solo la autorización de esa cuenta y la manda patrocinada: el relayer de Cavos paga la comisión, así que no hace falta XLM.
+- La cuenta se crea en la red la primera vez que se firma: la página la carga con Friendbot (XLM de prueba), espera a que exista y reconecta. Por eso la primera firma tarda un poco más. Si el relayer no patrocina la comisión, la cuenta la paga con esos XLM de prueba (`invokeContract` con `{ sponsored: false }`).
+- La regla de una firma por dirección funciona igual: cada cuenta de Cavos es una dirección más.
+- El kit (`@cavos/kit`) se descarga solo cuando alguien toca el botón, vuelve del login o ya había entrado antes, así que no afecta la carga de la página.
+
+**Configuración.** El App ID (el UUID de la app en [cavos.xyz/dashboard](https://cavos.xyz/dashboard), no un `cav_…`) está en `app/.env.production`, que se versiona, y en `app/.env.local` para desarrollo:
+
+```
+PUBLIC_CAVOS_APP_ID=79122095-edd3-49f1-a019-c7a6407b10bb
+```
+
+El App ID es público, porque va en el bundle. Sin App ID el botón aparece deshabilitado con una explicación. En el dashboard hay que registrar como callback URLs y orígenes permitidos `http://localhost:5173` y `https://josedanielm0202-droid.github.io/criptocantina/`. La sal de la app (`criptocantina`, en `app/src/lib/cavos.ts`) no se cambia nunca: cambiarla le daría a cada persona otra dirección.
+
 ## Cómo correrlo
 
 ### Requisitos previos

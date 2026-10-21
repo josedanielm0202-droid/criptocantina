@@ -4,10 +4,11 @@ import {
 	shortAddress,
 	stellarNetwork,
 } from "@stellar-scaffold/app-lib"
-import { useRef, useState, useTransition } from "react"
+import { useEffect, useRef, useState, useTransition } from "react"
 import { useLang } from "../../hooks/useLang"
 import { useWallet } from "../../hooks/useWallet"
 import { type DictKey } from "../../i18n"
+import { preloadCavos } from "../../lib/cavos"
 import {
 	ensureFreighter,
 	isFreighterDetected,
@@ -20,18 +21,20 @@ import { LangSwitch } from "./LangSwitch"
 import { Mascot } from "./Mascot"
 
 export function useAccountState() {
-	const { address, networkPassphrase, balances, isPending } = useWallet()
+	const { address, networkPassphrase, balances, isPending, source } =
+		useWallet()
 	const net = networkStatus(address, networkPassphrase)
-	const funded = balances.xlm !== undefined
-	return { address, net, funded, isPending, balances }
+	// Con Cavos las firmas son patrocinadas: no hace falta cargar XLM.
+	const funded = source === "cavos" || balances.xlm !== undefined
+	return { address, net, funded, isPending, balances, source }
 }
 
 export function FundButton({ className = "" }: { className?: string }) {
 	const { t } = useLang()
 	const { say } = useGuide()
-	const { address, updateBalances } = useWallet()
+	const { address, updateBalances, source } = useWallet()
 	const [pending, start] = useTransition()
-	if (!address || stellarNetwork === "PUBLIC") return null
+	if (!address || source === "cavos" || stellarNetwork === "PUBLIC") return null
 	return (
 		<button
 			type="button"
@@ -101,9 +104,112 @@ export function ConnectButton({ className = "" }: { className?: string }) {
 	)
 }
 
+/**
+ * «Entrar con Cavos (Google/correo)»: segunda forma de entrar, sin extensión.
+ * Sin App ID configurado se ve deshabilitado con una explicación.
+ */
+export function CavosButton({
+	className = "",
+	short = false,
+}: {
+	className?: string
+	short?: boolean
+}) {
+	const { t } = useLang()
+	const { cavos, isPending } = useWallet()
+	const label = short ? t("cavos.short") : t("cavos.signin")
+	if (!cavos.enabled)
+		return (
+			<span className="cavos-wrap" title={t("cavos.disabled")} tabIndex={0}>
+				<button
+					type="button"
+					className={`btn btn--cavos ${className}`}
+					disabled
+					aria-disabled
+				>
+					{label}
+				</button>
+			</span>
+		)
+	return (
+		<button
+			type="button"
+			className={`btn btn--cavos ${className}`}
+			onClick={cavos.open}
+			onPointerEnter={() => void preloadCavos()}
+			onFocus={() => void preloadCavos()}
+			disabled={cavos.busy || isPending}
+			title={t("cavos.title")}
+		>
+			{cavos.busy ? t("nav.loading") : label}
+		</button>
+	)
+}
+
+/** Botón de la cuenta Cavos: dirección + menú (copiar / salir). */
+function CavosAccount({ address }: { address: string }) {
+	const { t } = useLang()
+	const { cavos } = useWallet()
+	const [open, setOpen] = useState(false)
+	const [copied, setCopied] = useState(false)
+	const ref = useRef<HTMLDivElement>(null)
+	useEffect(() => {
+		if (!open) return
+		const off = (e: PointerEvent) =>
+			!ref.current?.contains(e.target as Node) && setOpen(false)
+		const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false)
+		window.addEventListener("pointerdown", off)
+		window.addEventListener("keydown", esc)
+		return () => {
+			window.removeEventListener("pointerdown", off)
+			window.removeEventListener("keydown", esc)
+		}
+	}, [open])
+	return (
+		<div className="cavos-acct" ref={ref}>
+			<button
+				type="button"
+				className="btn btn--wallet"
+				onClick={() => setOpen((o) => !o)}
+				title={t("cavos.account")}
+				aria-expanded={open}
+			>
+				<span className="btn__bal hide-sm">Cavos</span>
+				<span className="mono">{shortAddress(address)}</span>
+			</button>
+			{open && (
+				<div className="cavos-menu" role="menu">
+					{cavos.email && <p className="cavos-menu__who mono">{cavos.email}</p>}
+					<button
+						type="button"
+						role="menuitem"
+						onClick={() => {
+							void navigator.clipboard?.writeText(address)
+							setCopied(true)
+							setTimeout(() => setCopied(false), 1500)
+						}}
+					>
+						{copied ? t("cavos.copied") : t("cavos.copy")}
+					</button>
+					<button
+						type="button"
+						role="menuitem"
+						onClick={() => {
+							setOpen(false)
+							cavos.logout()
+						}}
+					>
+						{t("cavos.logout")}
+					</button>
+				</div>
+			)}
+		</div>
+	)
+}
+
 export function TopBar({ onHelp }: { onHelp: () => void }) {
 	const { t } = useLang()
-	const { address, net, funded, balances } = useAccountState()
+	const { address, net, funded, balances, source } = useAccountState()
 
 	const netLabel: DictKey = `nav.network.${net.state === "ok" ? "ok" : net.state}`
 	const netTitle: DictKey = `nav.network.title.${net.state}`
@@ -132,7 +238,9 @@ export function TopBar({ onHelp }: { onHelp: () => void }) {
 				{address && !funded && net.state !== "mismatch" && (
 					<FundButton className="hide-sm" />
 				)}
-				{address ? (
+				{address && source === "cavos" ? (
+					<CavosAccount address={address} />
+				) : address ? (
 					<button
 						type="button"
 						className="btn btn--wallet"
@@ -147,7 +255,10 @@ export function TopBar({ onHelp }: { onHelp: () => void }) {
 						<span className="mono">{shortAddress(address)}</span>
 					</button>
 				) : (
-					<ConnectButton />
+					<>
+						<CavosButton className="hide-sm" short />
+						<ConnectButton />
+					</>
 				)}
 				<LangSwitch />
 				<button

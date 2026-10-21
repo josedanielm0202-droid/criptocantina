@@ -1,5 +1,6 @@
 import { useLang } from "../../hooks/useLang"
 import { type DictKey } from "../../i18n"
+import { cavosEnabled, requestCavos } from "../../lib/cavos"
 import { LangSwitch } from "./LangSwitch"
 import { Mascot } from "./Mascot"
 
@@ -29,6 +30,25 @@ export function TopBarShell({ onWake }: { onWake: () => void }) {
 					<span className="pill__dot" />
 					<span className="pill__text">{APP_NETWORK}</span>
 				</span>
+				{cavosEnabled() ? (
+					<button
+						type="button"
+						className="btn btn--cavos hide-sm"
+						title={t("cavos.title")}
+						onClick={() => {
+							requestCavos()
+							onWake()
+						}}
+					>
+						{t("cavos.short")}
+					</button>
+				) : (
+					<span className="cavos-wrap hide-sm" title={t("cavos.disabled")}>
+						<button type="button" className="btn btn--cavos" disabled>
+							{t("cavos.short")}
+						</button>
+					</span>
+				)}
 				<button type="button" className="btn btn--primary" onClick={onWake}>
 					{t("nav.connect")}
 				</button>

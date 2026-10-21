@@ -8,18 +8,24 @@ import { useLang } from "../../hooks/useLang"
 import { useWallet } from "../../hooks/useWallet"
 import {
 	byteLength,
+	CONTRACT_ID,
 	type FriendlyError,
 	MAX_BYTES,
 	mapError,
 	txUrl,
 } from "../../lib/guestbook"
 import { useGuide } from "./Guide"
-import { ConnectButton, FundButton, useAccountState } from "./TopBar"
+import {
+	CavosButton,
+	ConnectButton,
+	FundButton,
+	useAccountState,
+} from "./TopBar"
 
 type Phase =
 	| { s: "idle" }
 	| { s: "preparing" }
-	| { s: "waiting" }
+	| { s: "waiting"; creating?: boolean }
 	| { s: "sending" }
 	| { s: "success"; hash?: string }
 	| { s: "error"; err: FriendlyError }
@@ -28,8 +34,9 @@ export function SignForm({ firmas }: { firmas: FirmaUI[] | undefined }) {
 	const { t } = useLang()
 	const guide = useGuide()
 	const qc = useQueryClient()
-	const { signTransaction, updateBalances } = useWallet()
-	const { address, net, funded } = useAccountState()
+	const { signTransaction, updateBalances, cavos } = useWallet()
+	const { address, net, funded, source } = useAccountState()
+	const isCavos = source === "cavos"
 	const [mensaje, setMensaje] = useState("")
 	const [phase, setPhase] = useState<Phase>({ s: "idle" })
 	const ref = useRef<HTMLDivElement>(null)
@@ -61,14 +68,14 @@ export function SignForm({ firmas }: { firmas: FirmaUI[] | undefined }) {
 			else
 				guide.sayOnce(
 					`connected-${address}`,
-					"guide.connected",
+					isCavos ? "guide.cavosConnected" : "guide.connected",
 					"emocionado",
 					2800,
 				)
 		}, 1800)
 		return () => clearTimeout(id)
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [address, net.state, funded])
+	}, [address, net.state, funded, isCavos])
 
 	const fail = (e: unknown) => {
 		const err = mapError(e)
@@ -76,9 +83,10 @@ export function SignForm({ firmas }: { firmas: FirmaUI[] | undefined }) {
 		setPhase({ s: "error", err })
 		if (err.key === "err.alreadySigned")
 			guide.say("guide.already", "triste", 4200)
-		else if (err.key === "err.rejected")
-			guide.say("err.rejected", "triste", 3600)
-		else guide.say("guide.error", "nervioso", 3600)
+		else if (err.key === "err.rejected") {
+			if (isCavos) setPhase({ s: "error", err: { key: "err.cavosRejected" } })
+			guide.say(isCavos ? "err.cavosRejected" : "err.rejected", "triste", 3600)
+		} else guide.say("guide.error", "nervioso", 3600)
 	}
 
 	const submit = async (e: React.FormEvent) => {
@@ -89,6 +97,8 @@ export function SignForm({ firmas }: { firmas: FirmaUI[] | undefined }) {
 		if (!msg) return setPhase({ s: "error", err: { key: "err.empty" } })
 		if (tooLong) return setPhase({ s: "error", err: { key: "err.tooLong" } })
 		if (already) return fail("YaFirmo")
+
+		if (isCavos) return submitCavos(msg)
 
 		try {
 			setPhase({ s: "preparing" })
@@ -140,6 +150,30 @@ export function SignForm({ firmas }: { firmas: FirmaUI[] | undefined }) {
 		}
 	}
 
+	/**
+	 * Firma con Cavos: invokeContract simula firmar(autor, mensaje), firma solo
+	 * la autorización de esta cuenta (require_auth(autor)) y la manda con la
+	 * comisión patrocinada por Cavos. La primera vez crea la cuenta en la red.
+	 */
+	const finish = (hash?: string) => {
+		setPhase({ s: "success", hash })
+		setMensaje("")
+		guide.say("guide.success", "emocionado", 5200)
+		void qc.invalidateQueries({ queryKey: FIRMAS_KEY })
+	}
+	const submitCavos = async (msg: string) => {
+		try {
+			setPhase({ s: "waiting", creating: cavos.status === "undeployed" })
+			guide.mood("determinado", 0)
+			guide.say("guide.cavosSigning", "determinado", 6000)
+			const hash = await cavos.firmar(CONTRACT_ID, msg)
+			finish(hash)
+		} catch (err) {
+			guide.mood("neutral", 0)
+			fail(err)
+		}
+	}
+
 	const errorText = (err: FriendlyError) =>
 		err.key === "err.generic"
 			? t("err.generic", { msg: err.raw ?? "" })
@@ -150,7 +184,11 @@ export function SignForm({ firmas }: { firmas: FirmaUI[] | undefined }) {
 		gate = (
 			<div className="ticket__gate">
 				<p>{t("form.notConnected")}</p>
-				<ConnectButton />
+				<div className="ticket__connect">
+					<ConnectButton />
+					<span className="ticket__or mono">{t("cavos.or")}</span>
+					<CavosButton />
+				</div>
 			</div>
 		)
 	else if (net.state === "mismatch")
@@ -229,7 +267,9 @@ export function SignForm({ firmas }: { firmas: FirmaUI[] | undefined }) {
 						{already
 							? t("form.already")
 							: busy
-								? t(`form.state.${phase.s}` as "form.state.waiting")
+								? isCavos && phase.s === "waiting"
+									? t(phase.creating ? "cavos.creating" : "cavos.waiting")
+									: t(`form.state.${phase.s}` as "form.state.waiting")
 								: t("form.submit")}
 						{busy && <span className="spinner" />}
 					</button>
@@ -250,7 +290,9 @@ export function SignForm({ firmas }: { firmas: FirmaUI[] | undefined }) {
 												: ""
 									}
 								>
-									{t(`form.state.${s}`)}
+									{isCavos && s === "waiting"
+										? t("cavos.waiting")
+										: t(`form.state.${s}`)}
 								</li>
 							))}
 						</ol>

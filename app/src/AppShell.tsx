@@ -3,6 +3,7 @@ import { Dive } from "./components/cantina/Dive"
 import { INTRO_PLAY } from "./components/cantina/Hero"
 import { ScrollFX } from "./components/cantina/ScrollFX"
 import { TopBarShell } from "./components/cantina/TopBarShell"
+import { isCavosCallback } from "./lib/cavos"
 import { prefersReducedMotion } from "./lib/smooth"
 
 /**
@@ -17,7 +18,12 @@ const isDebugPath = () => /\/debug(\/|$)/.test(location.pathname)
 /** Cuándo cargar el resto: al terminar el intro automático o al primer gesto. */
 function useWakeApp() {
 	const [wake, setWake] = useState(
-		() => prefersReducedMotion() || !!location.hash || isDebugPath(),
+		() =>
+			prefersReducedMotion() ||
+			!!location.hash ||
+			isDebugPath() ||
+			// volviendo del login de Cavos: cargar ya para terminar de entrar
+			isCavosCallback(),
 	)
 	const now = useCallback(() => setWake(true), [])
 	useEffect(() => {

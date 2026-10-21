@@ -3316,3 +3316,78 @@ textarea:focus-visible {
 .near-coin {
 	min-width: 0;
 }
+
+/* ── Cavos: segunda forma de entrar (Google / Apple / correo) ── */
+.btn--cavos {
+	background: var(--text);
+	border-color: var(--text);
+	color: var(--bg);
+}
+
+.btn--cavos:hover:not(:disabled) {
+	background: #fff;
+	border-color: #fff;
+}
+
+/* el título se ve aunque el botón esté deshabilitado */
+.cavos-wrap {
+	display: inline-flex;
+	cursor: help;
+}
+
+.cavos-wrap .btn:disabled {
+	pointer-events: none;
+}
+
+.ticket__connect {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	flex-wrap: wrap;
+}
+
+.ticket__or {
+	color: var(--muted);
+	font-size: 0.8rem;
+}
+
+.cavos-acct {
+	position: relative;
+}
+
+.cavos-menu {
+	position: absolute;
+	right: 0;
+	top: calc(100% + 0.4rem);
+	z-index: 60;
+	min-width: 12rem;
+	display: flex;
+	flex-direction: column;
+	padding: 0.35rem;
+	border-radius: 8px;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+}
+
+.cavos-menu__who {
+	margin: 0;
+	padding: 0.45rem 0.6rem;
+	font-size: 0.75rem;
+	color: var(--muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.cavos-menu button {
+	all: unset;
+	padding: 0.55rem 0.6rem;
+	border-radius: 6px;
+	font-size: 0.85rem;
+	cursor: pointer;
+}
+
+.cavos-menu button:hover,
+.cavos-menu button:focus-visible {
+	background: var(--line);
+}

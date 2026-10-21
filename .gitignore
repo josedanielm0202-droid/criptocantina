@@ -48,3 +48,4 @@ app-lib/clients/*
 
 # Stellar CLI local identities/config (never commit keys)
 .stellar
+!.env.production
