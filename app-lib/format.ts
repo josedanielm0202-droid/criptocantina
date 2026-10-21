@@ -1,5 +1,4 @@
-import { Networks } from "@creit.tech/stellar-wallets-kit"
-import { networkPassphrase, stellarNetwork } from "./env"
+import { Networks, networkPassphrase, stellarNetwork } from "./env"
 
 /** Shorten a Stellar address/contract id: first 4 + last 4, ellipsised. */
 export const shortAddress = (addr: string): string =>

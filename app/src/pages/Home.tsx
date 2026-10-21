@@ -1,15 +1,15 @@
 import { labPrefix } from "@stellar-scaffold/app-lib"
 import {
+	lazy,
 	startTransition,
 	useCallback,
 	useEffect,
 	useRef,
 	useState,
 } from "react"
-import { Coin3D } from "../components/cantina/Coin3D"
 import { useGuide } from "../components/cantina/Guide"
 import { Mascot } from "../components/cantina/Mascot"
-import { SignatureList } from "../components/cantina/SignatureList"
+import { Near } from "../components/cantina/Near"
 import { SignForm } from "../components/cantina/SignForm"
 import { useFirmadoLive, useFirmas } from "../hooks/useFirmas"
 import { useInView } from "../hooks/useInView"
@@ -17,6 +17,16 @@ import { useLang } from "../hooks/useLang"
 import { type DictKey } from "../i18n"
 import { CONTRACT_ID, contractUrl, MAX_BYTES } from "../lib/guestbook"
 import { prefersReducedMotion } from "../lib/smooth"
+
+// Piezas pesadas que se cargan al acercarse (ver Near)
+const SignatureList = lazy(() =>
+	import("../components/cantina/SignatureList").then((m) => ({
+		default: m.SignatureList,
+	})),
+)
+const Coin3D = lazy(() =>
+	import("../components/cantina/Coin3D").then((m) => ({ default: m.Coin3D })),
+)
 
 /** Texto que se "enciende" palabra por palabra con el scroll. */
 function ScrollWords({
@@ -185,7 +195,9 @@ function Contract() {
 				</h2>
 			</header>
 			<div className="contract__grid">
-				<Coin3D />
+				<Near minHeight={420} className="near-coin">
+					<Coin3D />
+				</Near>
 				<div className="contract__info" data-reveal>
 					<p>{t("contract.desc")}</p>
 					<div className="cid">
@@ -316,7 +328,9 @@ const Home = () => {
 						</h2>
 						<p className="book__sub mono">{t("list.subtitle")}</p>
 					</header>
-					<SignatureList query={firmas} />
+					<Near minHeight={720}>
+						<SignatureList query={firmas} />
+					</Near>
 				</section>
 			)}
 			{shown >= 5 && <Contract />}

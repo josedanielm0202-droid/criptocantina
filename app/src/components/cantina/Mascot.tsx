@@ -26,7 +26,7 @@ const DARK = "#2A5FC4"
 const EYE = "#FFFFFF"
 
 /** Silueta: huevo redondeado con aletitas abajo a los lados. */
-const BODY =
+export const BODY =
 	"M100 12 C136 12 160 62 168 118 C172 146 178 164 190 178 C194 183 191 189 184 188 C177 187 171 185 166 183 C160 196 147 204 133 206 C131 212 121 214 113 211 C105 209 95 209 87 211 C79 214 69 212 67 206 C53 204 40 196 34 183 C29 185 23 187 16 188 C9 189 6 183 10 178 C22 164 28 146 32 118 C40 62 64 12 100 12 Z"
 
 const star = (cx: number, cy: number, r: number) => {

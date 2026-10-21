@@ -15,6 +15,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@fontsource/cinzel": "^5.3.0",
     "@fontsource/patrick-hand": "^5.3.0",
     "@stellar-scaffold/app-lib": "*",
     "@tanstack/react-query": "^5.90.17",

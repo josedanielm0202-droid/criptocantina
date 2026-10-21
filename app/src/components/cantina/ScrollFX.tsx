@@ -118,7 +118,9 @@ export function ScrollFX() {
 					const top = it.top - y
 					const total = it.sticky ? it.height - vh : it.height + vh
 					const done = it.sticky ? -top : vh - top
-					return Math.min(1, Math.max(0, total > 0 ? done / total : 0)).toFixed(4)
+					return Math.min(1, Math.max(0, total > 0 ? done / total : 0)).toFixed(
+						4,
+					)
 				})
 				// escrituras (solo si cambió el valor)
 				items.forEach((it, i) => {
@@ -155,10 +157,32 @@ export function ScrollFX() {
 				}),
 			{ threshold: 0.12, rootMargin: "0px 0px -6% 0px" },
 		)
-		const observeAll = () =>
+		// Secciones fuera de pantalla: `data-off` pausa sus animaciones CSS
+		// (cinta, puntos "en vivo", flechas…) para no gastar frames en lo que no
+		// se ve.
+		const offIo = new IntersectionObserver(
+			(entries) =>
+				entries.forEach((e) => {
+					if (e.isIntersecting) e.target.removeAttribute("data-off")
+					else e.target.setAttribute("data-off", "")
+				}),
+			{ rootMargin: "120px 0px" },
+		)
+		const offSeen = new WeakSet<Element>()
+		const observeAll = () => {
 			document
 				.querySelectorAll("[data-reveal]:not(.is-in)")
 				.forEach((el) => io.observe(el))
+			document
+				.querySelectorAll(
+					"main.page > section, main.page > footer, main.page > .marquee, .page > div > section",
+				)
+				.forEach((el) => {
+					if (offSeen.has(el)) return
+					offSeen.add(el)
+					offIo.observe(el)
+				})
+		}
 		observeAll()
 		// Agrupar mutaciones: como mucho una pasada por frame
 		let moQueued = false
@@ -178,6 +202,7 @@ export function ScrollFX() {
 			ro.disconnect()
 			window.removeEventListener("resize", requestMeasure)
 			io.disconnect()
+			offIo.disconnect()
 			mo.disconnect()
 			requestMeasure = () => {}
 			if (getLenis()) stopSmooth()

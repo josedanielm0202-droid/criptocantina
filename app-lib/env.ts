@@ -1,5 +1,14 @@
-import { Networks } from "@creit.tech/stellar-wallets-kit"
 import { options } from "./clients"
+
+// Mismos valores que el enum `Networks` del kit de wallets, definidos aquí para
+// no cargar el kit (~500 KB) solo por estas constantes.
+export const Networks = {
+	PUBLIC: "Public Global Stellar Network ; September 2015",
+	TESTNET: "Test SDF Network ; September 2015",
+	FUTURENET: "Test SDF Future Network ; October 2022",
+	SANDBOX: "Local Sandbox Stellar Network ; September 2022",
+	STANDALONE: "Standalone Network ; February 2017",
+} as const
 
 type NetworkType = "mainnet" | "testnet" | "futurenet" | "local"
 

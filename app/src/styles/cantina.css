@@ -745,7 +745,8 @@ textarea:focus-visible {
 	width: calc(var(--r0) + 3px);
 	height: calc(var(--r0) + 3px);
 	will-change: transform;
-	--g: transparent calc(var(--r0) - 0.75px), var(--ring) var(--r0),
+	--g:
+		transparent calc(var(--r0) - 0.75px), var(--ring) var(--r0),
 		var(--ring) calc(var(--r0) + 2.25px), var(--bg) calc(var(--r0) + 3px);
 }
 
@@ -2834,7 +2835,8 @@ textarea:focus-visible {
 	position: relative;
 	height: calc(var(--lh) * 15 + 100px);
 	transform-style: preserve-3d;
-	transition: transform 0.9s var(--ease-io);
+	/* misma curva que la hoja: el corrimiento de la tapa va sincronizado */
+	transition: transform 0.9s cubic-bezier(0.45, 0.05, 0.25, 1);
 	touch-action: pan-y;
 	user-select: none;
 	cursor: grab;
@@ -2842,9 +2844,6 @@ textarea:focus-visible {
 }
 .fb__book:active {
 	cursor: grabbing;
-}
-.fb--closed .fb__book {
-	transform: translateX(-25%);
 }
 .fb__half,
 .fb__leaf {
@@ -2934,20 +2933,28 @@ textarea:focus-visible {
 }
 .fb__half--L .paper,
 .fb__face--back .paper {
-	background: linear-gradient(to left, rgba(70, 60, 30, 0.16), rgba(70, 60, 30, 0) 9%), var(--paper);
+	background:
+		linear-gradient(to left, rgba(70, 60, 30, 0.16), rgba(70, 60, 30, 0) 9%),
+		var(--paper);
 	border-radius: 4px 0 0 4px;
 }
 .fb__half--R .paper,
 .fb__face--front .paper {
-	background: linear-gradient(to right, rgba(70, 60, 30, 0.18), rgba(70, 60, 30, 0) 9%), var(--paper);
+	background:
+		linear-gradient(to right, rgba(70, 60, 30, 0.18), rgba(70, 60, 30, 0) 9%),
+		var(--paper);
 	border-radius: 0 4px 4px 0;
 }
 /* canto de hojas */
 .fb__half--R .paper {
-	box-shadow: inset -3px 0 0 var(--paper-2), inset -5px 0 0 #d9d2bc;
+	box-shadow:
+		inset -3px 0 0 var(--paper-2),
+		inset -5px 0 0 #d9d2bc;
 }
 .fb__half--L .paper {
-	box-shadow: inset 3px 0 0 var(--paper-2), inset 5px 0 0 #d9d2bc;
+	box-shadow:
+		inset 3px 0 0 var(--paper-2),
+		inset 5px 0 0 #d9d2bc;
 }
 .paper__head {
 	height: 56px;
@@ -3061,71 +3068,163 @@ textarea:focus-visible {
 	cursor: pointer;
 }
 
-/* --- Portada mate --- */
+/* --- Portada: tela azul marino, escamas, filetes dorados --- */
 .fb-cover,
 .fb-inside {
 	position: absolute;
 	inset: 0;
-	border-radius: 2px 6px 6px 2px;
-	background:
-		linear-gradient(to right, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0) 6%, rgba(255, 255, 255, 0.03) 7%, rgba(0, 0, 0, 0) 9%),
-		radial-gradient(120% 90% at 30% 20%, #1a1f2a, #10141b 70%);
-	box-shadow: inset 0 0 0 1px rgba(234, 238, 221, 0.06);
+	overflow: hidden;
 }
-.fb-inside {
-	border-radius: 6px 2px 2px 6px;
-	background: linear-gradient(to left, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0) 8%), #141922;
+.fb-cover {
+	--gold: #d6b062;
+	border-radius: 3px 8px 8px 3px;
+	/* Tela azul con escamas, bisagra y viñeta horneadas en una sola imagen
+	 * (antes eran 6 capas de degradés + un SVG en mosaico: muy caro de
+	 * rasterizar en GPUs integradas). */
+	background: #12203f url("../assets/cover-tela.webp") center / 100% 100%
+		no-repeat;
+	/* canto dorado + borde de la tela (sin desenfoques) */
+	box-shadow:
+		inset 0 0 0 1px rgba(214, 176, 98, 0.45),
+		inset 0 0 0 3px #0c1530;
+	color: var(--gold);
+	font-family: "Cinzel", "Cormorant SC", Georgia, serif;
 }
 .fb-cover__frame {
 	position: absolute;
-	inset: 22px 22px 22px 34px;
-	border: 1px solid rgba(234, 238, 221, 0.14);
-	border-radius: 4px;
+	inset: 20px 20px 20px 30px;
+	border: 1px solid rgba(214, 176, 98, 0.55);
+	outline: 1px solid rgba(214, 176, 98, 0.22);
+	outline-offset: 4px;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
 	text-align: center;
-	gap: 0.7rem;
-	padding: 1.5rem;
+	gap: 0.55rem;
+	padding: 2.6rem 1.5rem;
+}
+.fb-orn {
+	position: absolute;
+	width: 74px;
+	height: 74px;
+	pointer-events: none;
+}
+.fb-orn--tl {
+	top: -9px;
+	left: -9px;
+}
+.fb-orn--tr {
+	top: -9px;
+	right: -9px;
+	transform: scaleX(-1);
+}
+.fb-orn--bl {
+	bottom: -9px;
+	left: -9px;
+	transform: scaleY(-1);
+}
+.fb-orn--br {
+	bottom: -9px;
+	right: -9px;
+	transform: scale(-1, -1);
+}
+.fb-flourish {
+	width: min(150px, 60%);
+	height: auto;
+	flex: none;
+}
+.fb-flourish--bot {
+	transform: scaleY(-1);
+}
+.fb-cover__kicker,
+.fb-cover__count,
+.fb-cover__open {
+	font-size: 0.62rem;
+	font-weight: 500;
+	letter-spacing: 0.28em;
+	text-transform: uppercase;
+	color: rgba(222, 190, 120, 0.78);
 }
 .fb-cover__kicker {
 	position: absolute;
-	top: 1.1rem;
-	font-size: 0.62rem;
-	letter-spacing: 0.2em;
-	text-transform: uppercase;
-	color: var(--muted);
+	top: 1.45rem;
+}
+.fb-cover__seal {
+	width: clamp(84px, 30%, 132px);
+	height: auto;
+	margin: 0.2rem 0 0.35rem;
+	flex: none;
 }
 .fb-cover__title {
-	font-family: var(--f-display);
-	font-size: clamp(1.5rem, 3vw, 2.3rem);
-	line-height: 1.05;
-	letter-spacing: -0.03em;
-	font-weight: 600;
-	color: var(--text);
-	max-width: 12ch;
-	margin: 0.4rem 0 0;
+	font-family: inherit;
+	font-size: clamp(1.25rem, 2.5vw, 1.95rem);
+	font-weight: 700;
+	line-height: 1.12;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	max-width: 13ch;
+	margin: 0;
+	color: #e2c172;
+	/* grabado: sombra oscura debajo, sin desenfoque */
+	text-shadow:
+		0 1px 0 rgba(0, 0, 0, 0.6),
+		0 -1px 0 rgba(255, 236, 180, 0.18);
 }
 .fb-cover__sub {
-	font-size: 1.35rem;
-	color: var(--purple);
-	margin: 0;
-}
-.fb-cover__count {
-	font-size: 0.7rem;
-	color: var(--muted);
-	letter-spacing: 0.1em;
+	font-family: inherit;
+	font-size: 0.8rem;
+	font-weight: 500;
+	letter-spacing: 0.32em;
 	text-transform: uppercase;
+	color: rgba(230, 200, 130, 0.9);
+	margin: 0;
 }
 .fb-cover__open {
 	position: absolute;
-	bottom: 1.1rem;
-	font-size: 0.7rem;
-	letter-spacing: 0.14em;
-	text-transform: uppercase;
-	color: var(--cyan);
-	opacity: 0.85;
+	bottom: 1.45rem;
+	color: #e9cf8c;
+}
+
+/* --- Guarda: papel crema con filete tenue --- */
+.fb-inside {
+	border-radius: 6px 2px 2px 6px;
+	color: rgba(176, 140, 70, 0.32);
+	background:
+		linear-gradient(to left, rgba(70, 60, 30, 0.16), rgba(70, 60, 30, 0) 9%),
+		radial-gradient(
+			120% 100% at 50% 40%,
+			rgba(255, 255, 255, 0.25),
+			rgba(0, 0, 0, 0) 70%
+		),
+		var(--paper);
+}
+.fb-inside .fb-orn {
+	width: 64px;
+	height: 64px;
+}
+.fb-inside .fb-orn--tl {
+	top: 16px;
+	left: 16px;
+}
+.fb-inside .fb-orn--tr {
+	top: 16px;
+	right: 24px;
+}
+.fb-inside .fb-orn--bl {
+	bottom: 16px;
+	left: 16px;
+}
+.fb-inside .fb-orn--br {
+	bottom: 16px;
+	right: 24px;
+}
+.fb-inside__mark {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 120px;
+	transform: translate(-50%, -50%);
 }
 
 /* --- Navegación --- */
@@ -3196,4 +3295,24 @@ textarea:focus-visible {
 	.fb__book {
 		transition: none;
 	}
+}
+
+/* ---------- Rendimiento (PC modestas) ----------
+ * Sin animaciones infinitas que no aportan: las mascotas de las baldosas del
+ * intro quedan quietas (cada una era una animación más por frame durante la
+ * zambullida) y el muñequito del riel ya no salta en bucle.
+ * Todo lo que está fuera de pantalla queda en pausa (data-off, ver ScrollFX). */
+.tile__mascot,
+.tile__mascot .mascot__bob,
+.tile__mascot .mascot__shadow,
+.tile__mascot .mascot__eyes,
+.rail__rider .mascot {
+	animation: none !important;
+}
+[data-off],
+[data-off] * {
+	animation-play-state: paused !important;
+}
+.near-coin {
+	min-width: 0;
 }

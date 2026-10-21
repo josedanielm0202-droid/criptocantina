@@ -7,4 +7,6 @@ export * from "./env" // rpcUrl, networkPassphrase, allowHttp, stellarNetwork, n
 export * from "./format" // shortAddress, formatNetworkName, networkStatus, NetworkState
 export * from "./friendbot" // getFriendbotUrl
 export * from "./subscription" // subscribeToEvents
-export * from "./wallet" // connectWallet, disconnectWallet, profileModal, signTransaction, onWalletChange, fetchBalances, wallet, MappedBalances, WalletState
+// La wallet (kit + módulos, ~500 KB) va aparte para cargarla solo cuando se
+// necesita: import("@stellar-scaffold/app-lib/wallet").
+// connectWallet, disconnectWallet, profileModal, signTransaction, onWalletChange, fetchBalances, wallet, MappedBalances, WalletState

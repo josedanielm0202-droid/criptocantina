@@ -1,5 +1,7 @@
 import "@fontsource/patrick-hand/latin.css"
 import "@fontsource/patrick-hand/latin-ext.css"
+import "@fontsource/cinzel/latin-500.css"
+import "@fontsource/cinzel/latin-700.css"
 import { shortAddress } from "@stellar-scaffold/app-lib"
 import { type UseQueryResult } from "@tanstack/react-query"
 import {
@@ -18,7 +20,7 @@ import { useLang } from "../../hooks/useLang"
 import { useWallet } from "../../hooks/useWallet"
 import { accountUrl } from "../../lib/guestbook"
 import { useGuide } from "./Guide"
-import { Mascot } from "./Mascot"
+import { BODY } from "./Mascot"
 
 /* ---------------------------------------------------------------------------
  * El libro de la Cantina: las firmas se muestran como un cuaderno rayado que
@@ -64,7 +66,11 @@ function wrap(text: string, width: number, ctx: CanvasRenderingContext2D) {
 	return out.length ? out : [""]
 }
 
-function paginate(list: FirmaUI[], width: number, ctx: CanvasRenderingContext2D) {
+function paginate(
+	list: FirmaUI[],
+	width: number,
+	ctx: CanvasRenderingContext2D,
+) {
 	const pages: Page[] = []
 	let cur: Entry[] = []
 	let used = 0
@@ -113,7 +119,11 @@ function useMock(): FirmaUI[] | null {
 		]
 		const A = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
 		const addr = (i: number) =>
-			"G" + Array.from({ length: 55 }, (_, k) => A[(i * 7 + k * 13 + ((i * k) % 5)) % 32]).join("")
+			"G" +
+			Array.from(
+				{ length: 55 },
+				(_, k) => A[(i * 7 + k * 13 + ((i * k) % 5)) % 32],
+			).join("")
 		return Array.from({ length: Number(n) }, (_, i) => ({
 			autor: addr(i),
 			mensaje: msgs[i % msgs.length] ?? "",
@@ -160,7 +170,9 @@ export function SignatureList({ query }: { query: UseQueryResult<FirmaUI[]> }) {
 			const pageW = single ? w : w / 2
 			const textW = Math.max(160, pageW - 2 * pagePad(pageW) - 16)
 			setDims((d) =>
-				d.single === single && Math.abs(d.textW - textW) < 1 ? d : { single, textW },
+				d.single === single && Math.abs(d.textW - textW) < 1
+					? d
+					: { single, textW },
 			)
 		}
 		measure()
@@ -170,7 +182,12 @@ export function SignatureList({ query }: { query: UseQueryResult<FirmaUI[]> }) {
 	}, [])
 
 	const chrono = useMemo(
-		() => (data ? [...data].sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0)) : []),
+		() =>
+			data
+				? [...data].sort((a, b) =>
+						a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0,
+					)
+				: [],
 		[data],
 	)
 	const pages = useMemo(() => {
@@ -183,10 +200,18 @@ export function SignatureList({ query }: { query: UseQueryResult<FirmaUI[]> }) {
 	}, [chrono, dims.textW, fontReady])
 
 	/* ---- vistas: -1 = cerrado (portada); s >= 0 = pliego / página ---- */
-	const per = dims.single ? 1 : 2
-	const lastView = Math.max(0, Math.ceil(pages.length / per) - 1)
+	// En dos páginas el pliego 0 es [guarda | pág. 1] y luego [2|3], [4|5]…:
+	// así, al abrir la tapa, su reverso (la guarda) cae a la izquierda y la
+	// primera página queda a la derecha, como en un libro de verdad.
+	const lastView = dims.single
+		? Math.max(0, pages.length - 1)
+		: Math.max(0, Math.ceil((pages.length + 1) / 2) - 1)
 	const [view, setView] = useState(-1)
-	const [flip, setFlip] = useState<null | { from: number; to: number; dir: 1 | -1 }>(null)
+	const [flip, setFlip] = useState<null | {
+		from: number
+		to: number
+		dir: 1 | -1
+	}>(null)
 	const [angle, setAngle] = useState(0) // 0..180 grados de la hoja que gira
 	const [anim, setAnim] = useState(false)
 	const [fade, setFade] = useState(false)
@@ -237,24 +262,32 @@ export function SignatureList({ query }: { query: UseQueryResult<FirmaUI[]> }) {
 	)
 	useEffect(() => () => window.clearTimeout(timer.current), [])
 
-	const next = () => go(view === -1 ? lastView : view + 1)
+	// abrir la tapa lleva al primer pliego (guarda | pág. 1), como un libro
+	const next = () => go(view + 1)
 	const prev = () => go(view === 0 ? -1 : view - 1)
 
 	/* ---- arrastrar la esquina / deslizar en móvil ---- */
-	const drag = useRef<null | { dir: 1 | -1; x0: number; w: number; to: number; p: number }>(null)
+	const drag = useRef<null | {
+		dir: 1 | -1
+		x0: number
+		w: number
+		to: number
+		p: number
+	}>(null)
 	const onDown = (e: RPointerEvent<HTMLDivElement>) => {
 		if (flip || reduced || e.button !== 0) return
 		if ((e.target as HTMLElement).closest("a,button")) return
 		const el = bookRef.current
 		if (!el) return
 		const r = el.getBoundingClientRect()
-		const onRight = dims.single || view === -1 ? true : e.clientX > r.left + r.width / 2
+		const onRight =
+			dims.single || view === -1 ? true : e.clientX > r.left + r.width / 2
 		const dir: 1 | -1 = onRight ? 1 : -1
 		if (dims.single && view !== -1) {
 			// en móvil: deslizar a la izquierda = siguiente, a la derecha = anterior
 			drag.current = { dir: 1, x0: e.clientX, w: r.width, to: NaN, p: 0 }
 		} else {
-			const to = dir === 1 ? (view === -1 ? lastView : view + 1) : view === 0 ? -1 : view - 1
+			const to = dir === 1 ? view + 1 : view - 1
 			if (to > lastView || to < -1) return
 			drag.current = { dir, x0: e.clientX, w: r.width, to, p: 0 }
 		}
@@ -289,7 +322,8 @@ export function SignatureList({ query }: { query: UseQueryResult<FirmaUI[]> }) {
 		if (!d) return
 		if (!flip) {
 			// clic sin arrastrar: pasar página según el lado
-			if (Math.abs(e.clientX - d.x0) < 6 && !Number.isNaN(d.to) && !dims.single) go(d.to)
+			if (Math.abs(e.clientX - d.x0) < 6 && !Number.isNaN(d.to) && !dims.single)
+				go(d.to)
 			else if (dims.single && Math.abs(e.clientX - d.x0) < 6) {
 				const r = bookRef.current?.getBoundingClientRect()
 				if (r && e.clientX < r.left + r.width * 0.3) prev()
@@ -335,15 +369,25 @@ export function SignatureList({ query }: { query: UseQueryResult<FirmaUI[]> }) {
 				lang={lang}
 				t={t}
 				me={address}
-				state={isLoading ? "loading" : isError ? "error" : chrono.length === 0 ? "empty" : "ok"}
+				state={
+					isLoading
+						? "loading"
+						: isError
+							? "error"
+							: chrono.length === 0
+								? "empty"
+								: "ok"
+				}
 				onRetry={() => void refetch()}
 			/>
 		)
 	}
 	const sideOf = (v: number, side: "L" | "R"): ReactNode => {
-		if (v === -1) return side === "R" ? <Cover t={t} count={chrono.length} /> : null
+		if (v === -1)
+			return side === "R" ? <Cover t={t} count={chrono.length} /> : null
 		if (dims.single) return side === "R" ? pageAt(v) : null
-		return pageAt(side === "L" ? v * 2 : v * 2 + 1)
+		if (side === "L") return v === 0 ? <InsideCover /> : pageAt(v * 2 - 1)
+		return pageAt(v * 2)
 	}
 
 	// qué se ve debajo de la hoja que gira
@@ -354,12 +398,28 @@ export function SignatureList({ query }: { query: UseQueryResult<FirmaUI[]> }) {
 			staticL = sideOf(from, "L")
 			staticR = sideOf(to, "R")
 			front = sideOf(from, "R")
-			back = dims.single ? <Paper back /> : sideOf(to, "L") ?? <InsideCover />
+			back = dims.single ? (
+				from === -1 ? (
+					<InsideCover />
+				) : (
+					<Paper back />
+				)
+			) : (
+				sideOf(to, "L")
+			)
 		} else {
 			staticL = sideOf(to, "L")
 			staticR = sideOf(from, "R")
 			front = sideOf(to, "R")
-			back = dims.single ? <Paper back /> : sideOf(from, "L") ?? <InsideCover />
+			back = dims.single ? (
+				to === -1 ? (
+					<InsideCover />
+				) : (
+					<Paper back />
+				)
+			) : (
+				sideOf(from, "L")
+			)
 		}
 		if (!dims.single) {
 			if (dir === 1 && from === -1) staticL = null
@@ -369,19 +429,35 @@ export function SignatureList({ query }: { query: UseQueryResult<FirmaUI[]> }) {
 		staticL = sideOf(view, "L")
 		staticR = sideOf(view, "R")
 	}
-	const closed = (flip ? (flip.dir === 1 ? angle < 90 && flip.from === -1 : angle < 90 && flip.to === -1) : view === -1)
-	const showLeftBase = !dims.single && (staticL !== null || (flip && !closed))
+	const closed = flip
+		? flip.dir === 1
+			? angle < 90 && flip.from === -1
+			: angle < 90 && flip.to === -1
+		: view === -1
+	// Mientras gira la tapa no hay nada debajo a la izquierda: solo la hoja.
+	const showLeftBase = !dims.single && staticL != null
+	// El libro cerrado se corre un cuarto a la izquierda para quedar centrado.
+	// Al abrir o cerrar la tapa ese corrimiento sigue al ángulo de la hoja
+	// (misma duración y curva) en vez de saltar a mitad del giro.
+	const coverFlip =
+		!!flip && !dims.single && (flip.from === -1 || flip.to === -1)
+	const shift = dims.single
+		? 0
+		: coverFlip
+			? -25 * (1 - angle / 180)
+			: view === -1
+				? -25
+				: 0
 
 	const counter =
 		view === -1
 			? t("list.cover")
-			: dims.single || view * 2 + 2 > pages.length
-				? t("list.pageOf", { a: dims.single ? view + 1 : view * 2 + 1, b: pages.length })
-				: t("list.pagesOf", {
-						a: view * 2 + 1,
-						b: Math.min(view * 2 + 2, pages.length),
-						c: pages.length,
+			: dims.single || view === 0 || view * 2 + 1 > pages.length
+				? t("list.pageOf", {
+						a: dims.single ? view + 1 : Math.max(1, view * 2),
+						b: pages.length,
 					})
+				: t("list.pagesOf", { a: view * 2, b: view * 2 + 1, c: pages.length })
 
 	return (
 		<div className="flipbook" ref={ref} data-reveal>
@@ -390,7 +466,9 @@ export function SignatureList({ query }: { query: UseQueryResult<FirmaUI[]> }) {
 					<span className="live-dot" /> {t("list.live")}
 				</span>
 				<span className="flipbook__count">
-					{chrono.length === 1 ? t("list.count1") : t("list.count", { n: chrono.length })}
+					{chrono.length === 1
+						? t("list.count1")
+						: t("list.count", { n: chrono.length })}
 				</span>
 				<button
 					type="button"
@@ -413,19 +491,29 @@ export function SignatureList({ query }: { query: UseQueryResult<FirmaUI[]> }) {
 				<div
 					className="fb__book"
 					ref={bookRef}
+					style={{
+						transform: `translateX(${shift}%)`,
+						transitionDuration: coverFlip && !anim ? "0ms" : `${FLIP_MS}ms`,
+					}}
 					onPointerDown={onDown}
 					onPointerMove={onMove}
 					onPointerUp={onUp}
 					onPointerCancel={onUp}
 				>
-					{showLeftBase && <div className="fb__half fb__half--L">{staticL ?? <InsideCover />}</div>}
+					{showLeftBase && (
+						<div className="fb__half fb__half--L">
+							{staticL ?? <InsideCover />}
+						</div>
+					)}
 					<div className="fb__half fb__half--R">{staticR}</div>
 					{!dims.single && !closed && <div className="fb__spine" aria-hidden />}
 					{flip && (
 						<div
 							className={`fb__leaf ${anim ? "is-anim" : ""}`}
 							style={{
-								transform: `rotateY(${-angle}deg)`,
+								// translateZ fuera del giro: la hoja va 1px por delante de
+								// las páginas fijas y no se "funde" con ellas en 0° / 180°
+								transform: `translateZ(1px) rotateY(${-angle}deg)`,
 								["--a" as string]: String(angle / 180),
 								transitionDuration: anim ? `${FLIP_MS}ms` : "0ms",
 							}}
@@ -470,7 +558,9 @@ function pagePad(pageW: number) {
 }
 
 function useReducedMotion() {
-	const [r, setR] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+	const [r, setR] = useState(
+		() => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+	)
 	useEffect(() => {
 		const m = window.matchMedia("(prefers-reduced-motion: reduce)")
 		const h = () => setR(m.matches)
@@ -482,25 +572,195 @@ function useReducedMotion() {
 
 type T = ReturnType<typeof useLang>["t"]
 
+/* ---- Portada de tela azul con filetes dorados (ornamentos propios en SVG) ---- */
+
+/** Degradé dorado compartido por los SVG de la tapa (mismo id = misma definición). */
+const GoldDefs = () => (
+	<defs>
+		<linearGradient id="fb-gold" x1="0" y1="0" x2="1" y2="1">
+			<stop offset="0" stopColor="#f6e3a4" />
+			<stop offset="0.35" stopColor="#d4ac55" />
+			<stop offset="0.6" stopColor="#9c7630" />
+			<stop offset="1" stopColor="#e9c977" />
+		</linearGradient>
+	</defs>
+)
+
+/** Esquina modernista: filete curvo, voluta y dos hojitas. Se refleja por CSS. */
+function Corner({
+	pos,
+	muted,
+}: {
+	pos: "tl" | "tr" | "bl" | "br"
+	muted?: boolean
+}) {
+	return (
+		<svg
+			className={`fb-orn fb-orn--${pos} ${muted ? "fb-orn--muted" : ""}`}
+			viewBox="0 0 96 96"
+			aria-hidden
+		>
+			<g
+				fill="none"
+				stroke={muted ? "currentColor" : "#d6b062"}
+				strokeLinecap="round"
+			>
+				<path d="M6 94 V30 C6 16 16 6 30 6 H94" strokeWidth="1.6" />
+				<path d="M15 94 V40 C15 26 26 15 40 15 H94" strokeWidth="0.8" />
+				<path d="M24 62 C24 38 38 24 62 24" strokeWidth="1.2" />
+				<path
+					d="M30 30 C38 22 50 26 47 35 C45 41 37 40 38 34"
+					strokeWidth="1.3"
+				/>
+				<path d="M62 24 C68 18 78 17 86 21" strokeWidth="1" />
+				<path d="M24 62 C18 68 17 78 21 86" strokeWidth="1" />
+			</g>
+			<g fill={muted ? "currentColor" : "#d6b062"}>
+				<path d="M66 15 C72 8 82 8 88 13 C81 16 73 17 66 15 Z" />
+				<path d="M15 66 C8 72 8 82 13 88 C16 81 17 73 15 66 Z" />
+				<circle cx="30" cy="30" r="2.2" />
+			</g>
+		</svg>
+	)
+}
+
+/** Remate central simétrico (arriba / abajo del título). */
+function Flourish({
+	className = "",
+	muted,
+}: {
+	className?: string
+	muted?: boolean
+}) {
+	const half =
+		"M4 14 C22 14 30 6 44 8 C54 9 56 19 49 21 C44 22 42 16 47 14 C56 12 64 14 70 14"
+	return (
+		<svg
+			className={`fb-flourish ${className}`}
+			viewBox="0 0 160 28"
+			aria-hidden
+		>
+			<g
+				fill="none"
+				stroke={muted ? "currentColor" : "#d6b062"}
+				strokeWidth="1.2"
+				strokeLinecap="round"
+			>
+				<path d={half} />
+				<path d={half} transform="translate(160 0) scale(-1 1)" />
+			</g>
+			<path
+				d="M80 6 L87 14 L80 22 L73 14 Z"
+				fill={muted ? "currentColor" : "#d6b062"}
+			/>
+		</svg>
+	)
+}
+
+/** La mascota "grabada" en la tela: solo trazo dorado, relleno apenas más
+ *  oscuro y un bajorrelieve hecho con trazos desplazados (sin filtros). */
+function EngravedMascot() {
+	return (
+		<svg className="fb-cover__seal" viewBox="-20 -14 240 248" aria-hidden>
+			<GoldDefs />
+			<defs>
+				<clipPath id="fb-seal-clip">
+					<path d={BODY} />
+				</clipPath>
+			</defs>
+			{/* medallón */}
+			<circle
+				cx="100"
+				cy="110"
+				r="118"
+				fill="none"
+				stroke="url(#fb-gold)"
+				strokeWidth="1.4"
+			/>
+			<circle
+				cx="100"
+				cy="110"
+				r="111"
+				fill="none"
+				stroke="url(#fb-gold)"
+				strokeWidth="0.6"
+				opacity="0.7"
+			/>
+			{/* hundido: relleno oscuro + sombra interior arriba-izq y luz abajo-der */}
+			<path d={BODY} fill="#0a1226" opacity="0.55" />
+			<g clipPath="url(#fb-seal-clip)" fill="none">
+				<path
+					d={BODY}
+					stroke="#02050d"
+					strokeWidth="9"
+					opacity="0.55"
+					transform="translate(3 4)"
+				/>
+				<path
+					d={BODY}
+					stroke="#f3dc9a"
+					strokeWidth="2"
+					opacity="0.18"
+					transform="translate(-2 -2)"
+				/>
+			</g>
+			<path
+				d={BODY}
+				fill="none"
+				stroke="url(#fb-gold)"
+				strokeWidth="3.2"
+				strokeLinejoin="round"
+			/>
+			<g fill="#0a1226" stroke="url(#fb-gold)" strokeWidth="2.6">
+				<rect x="69" y="81" width="20" height="42" rx="10" />
+				<rect x="111" y="81" width="20" height="42" rx="10" />
+			</g>
+			<path
+				d="M58 60 C66 44 80 36 92 34"
+				fill="none"
+				stroke="#f6e3a4"
+				strokeWidth="1.4"
+				strokeLinecap="round"
+				opacity="0.5"
+			/>
+		</svg>
+	)
+}
+
 function Cover({ t, count }: { t: T; count: number }) {
 	return (
 		<div className="fb-cover">
 			<div className="fb-cover__frame">
-				<span className="fb-cover__kicker mono">Cripto Cantina · Testnet</span>
-				<Mascot expression="neutral" size={92} className="fb-cover__mascot" />
+				<Corner pos="tl" />
+				<Corner pos="tr" />
+				<Corner pos="bl" />
+				<Corner pos="br" />
+				<span className="fb-cover__kicker">Cripto Cantina · Testnet</span>
+				<Flourish className="fb-flourish--top" />
+				<EngravedMascot />
 				<h3 className="fb-cover__title">{t("list.bookTitle")}</h3>
-				<p className="fb-cover__sub serif">{t("list.subtitle")}</p>
-				<span className="fb-cover__count mono">
+				<p className="fb-cover__sub">{t("list.subtitle")}</p>
+				<Flourish className="fb-flourish--bot" />
+				<span className="fb-cover__count">
 					{count === 1 ? t("list.count1") : t("list.count", { n: count })}
 				</span>
-				<span className="fb-cover__open mono">{t("list.openHint")} →</span>
+				<span className="fb-cover__open">{t("list.openHint")} →</span>
 			</div>
 		</div>
 	)
 }
 
+/** Guarda (reverso de la tapa): papel crema con un filete dorado muy tenue. */
 function InsideCover() {
-	return <div className="fb-inside" />
+	return (
+		<div className="fb-inside">
+			<Corner pos="tl" muted />
+			<Corner pos="tr" muted />
+			<Corner pos="bl" muted />
+			<Corner pos="br" muted />
+			<Flourish className="fb-inside__mark" muted />
+		</div>
+	)
 }
 
 function Paper(props: {
@@ -519,7 +779,8 @@ function Paper(props: {
 	const slot = first ? dateParts(first.f.fecha, lang).slot : ["", "", ""]
 	let body: ReactNode = null
 	if (page && t) {
-		if (state === "loading") body = <div className="hw-line hw-muted">{t("list.loading")}</div>
+		if (state === "loading")
+			body = <div className="hw-line hw-muted">{t("list.loading")}</div>
 		else if (state === "error")
 			body = (
 				<div className="hw-line hw-err">
@@ -541,11 +802,20 @@ function Paper(props: {
 				const { slot: s, time } = dateParts(e.f.fecha, lang)
 				const mine = e.f.autor === me
 				return (
-					<article key={`${e.f.autor}-${String(e.f.fecha)}`} className={`hw-entry ${mine ? "is-me" : ""}`}>
+					<article
+						key={`${e.f.autor}-${String(e.f.fecha)}`}
+						className={`hw-entry ${mine ? "is-me" : ""}`}
+					>
 						{i > 0 && <div className="hw-line" aria-hidden />}
 						<div className="hw-line hw-head">
 							<span className="hw-label">{t("list.addr")}</span>{" "}
-							<a href={accountUrl(e.f.autor)} target="_blank" rel="noreferrer" title={e.f.autor} className="hw-addr">
+							<a
+								href={accountUrl(e.f.autor)}
+								target="_blank"
+								rel="noreferrer"
+								title={e.f.autor}
+								className="hw-addr"
+							>
 								{shortAddress(e.f.autor)}
 							</a>
 							{mine && <span className="hw-you">({t("list.you")})</span>}
@@ -570,7 +840,9 @@ function Paper(props: {
 				</span>
 			</div>
 			<div className="paper__lines">{body}</div>
-			<div className="paper__foot">{page && total ? <span>{page.n}</span> : null}</div>
+			<div className="paper__foot">
+				{page && total ? <span>{page.n}</span> : null}
+			</div>
 		</div>
 	)
 }

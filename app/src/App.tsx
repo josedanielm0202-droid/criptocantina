@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { useCallback, useLayoutEffect, useState } from "react"
+import { lazy, Suspense, useCallback, useLayoutEffect, useState } from "react"
 import { BrowserRouter, Route, Routes } from "react-router-dom"
 import { HelpPanel } from "./components/cantina/HelpPanel"
 import { TopBar } from "./components/cantina/TopBar"
-import Debug from "./pages/Debug"
 import Home from "./pages/Home"
+
+const Debug = lazy(() => import("./pages/Debug"))
 import { WalletProvider } from "./providers/WalletProvider"
 
 const queryClient = new QueryClient({
@@ -33,8 +34,22 @@ function App({ onReady }: { onReady: () => void }) {
 					<TopBar onHelp={() => setHelp(true)} />
 					<Routes>
 						<Route path="/" element={<Home />} />
-						<Route path="/debug" element={<Debug />} />
-						<Route path="/debug/:contractName" element={<Debug />} />
+						<Route
+							path="/debug"
+							element={
+								<Suspense fallback={null}>
+									<Debug />
+								</Suspense>
+							}
+						/>
+						<Route
+							path="/debug/:contractName"
+							element={
+								<Suspense fallback={null}>
+									<Debug />
+								</Suspense>
+							}
+						/>
 					</Routes>
 					<HelpPanel open={help} onClose={close} />
 				</BrowserRouter>

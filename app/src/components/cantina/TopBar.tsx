@@ -1,10 +1,6 @@
 import {
-	ensureFreighter,
 	fundAccount,
-	isFreighterDetected,
 	networkStatus,
-	openWalletModal,
-	profileModal,
 	shortAddress,
 	stellarNetwork,
 } from "@stellar-scaffold/app-lib"
@@ -12,6 +8,13 @@ import { useRef, useState, useTransition } from "react"
 import { useLang } from "../../hooks/useLang"
 import { useWallet } from "../../hooks/useWallet"
 import { type DictKey } from "../../i18n"
+import {
+	ensureFreighter,
+	isFreighterDetected,
+	loadWallet,
+	openWalletModal,
+	profileModal,
+} from "../../lib/wallet"
 import { useGuide } from "./Guide"
 import { LangSwitch } from "./LangSwitch"
 import { Mascot } from "./Mascot"
@@ -88,6 +91,9 @@ export function ConnectButton({ className = "" }: { className?: string }) {
 			type="button"
 			className={`btn btn--primary ${className}`}
 			onClick={() => void onConnect()}
+			// precarga la wallet (y la detección de Freighter) al acercar el mouse
+			onPointerEnter={() => void loadWallet()}
+			onFocus={() => void loadWallet()}
 			disabled={isPending || checking}
 		>
 			{isPending || checking ? t("nav.loading") : t("nav.connect")}

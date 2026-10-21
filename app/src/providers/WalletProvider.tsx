@@ -1,10 +1,12 @@
+import { createContext, useCallback, useEffect, useMemo, useState } from "react"
 import {
 	fetchBalances,
+	hadWallet,
+	loadWallet,
 	type MappedBalances,
-	onWalletChange,
 	signTransaction,
-} from "@stellar-scaffold/app-lib"
-import { createContext, useCallback, useEffect, useMemo, useState } from "react"
+	whenWalletLoaded,
+} from "../lib/wallet"
 
 /**
  * A good-enough implementation of deepEqual.
@@ -72,13 +74,35 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 
 	// Subscribe to wallet state. Gets values immediately and on every subsequent
 	// change: connect, disconnect, and the wallet switching networks.
+	// La wallet se carga recién cuando hace falta (ver lib/wallet.ts): si había
+	// una conectada de antes, en un momento libre; si no, al tocar "Conectar".
 	useEffect(() => {
-		return onWalletChange((state) => {
-			setAddress(state.address)
-			setNetworkPassphrase(state.networkPassphrase)
-			setIsPending(false)
-			if (!state.address) setBalances({})
+		let stop: (() => void) | undefined
+		let alive = true
+		const cancel = whenWalletLoaded((m) => {
+			if (!alive) return
+			stop = m.onWalletChange((state) => {
+				setAddress(state.address)
+				setNetworkPassphrase(state.networkPassphrase)
+				setIsPending(false)
+				if (!state.address) setBalances({})
+			})
 		})
+		let idle = 0
+		if (hadWallet()) {
+			const ric =
+				window.requestIdleCallback ??
+				((cb: () => void) => window.setTimeout(cb, 1200))
+			idle = ric(() => void loadWallet(), {
+				timeout: 4000,
+			} as IdleRequestOptions)
+		} else setIsPending(false)
+		return () => {
+			alive = false
+			cancel()
+			stop?.()
+			window.cancelIdleCallback?.(idle)
+		}
 	}, [])
 
 	const contextValue = useMemo(

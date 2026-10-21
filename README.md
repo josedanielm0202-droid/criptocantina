@@ -4,7 +4,7 @@ dApp en **Stellar Testnet** donde cualquiera conecta su wallet (Freighter), deja
 
 Entrega del **Stellar Challenge #1: «El libro de visitas de la Cripto Cantina»**.
 
-![El libro de la Cantina con una firma real en testnet](docs/screenshot-libro.png)
+![Portada del libro de la Cantina (firmas reales en testnet)](docs/screenshot-libro.png)
 
 | Intro | Firmar | Preguntas frecuentes |
 | --- | --- | --- |
